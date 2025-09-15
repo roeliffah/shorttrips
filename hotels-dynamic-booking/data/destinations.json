@@ -1,0 +1,7 @@
+[
+  { "name": "Alanya", "id": 203, "code": "AYT" },
+  { "name": "Antalya", "id": 204, "code": "AYT" },
+  { "name": "Marmaris", "id": 205, "code": "DLM" },
+  { "name": "Bodrum", "id": 206, "code": "BJV" },
+  { "name": "Istanbul", "id": 207, "code": "IST" }
+]

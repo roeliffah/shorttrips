@@ -1,0 +1,35 @@
+[
+  {
+    "hotel_id": "1001",
+    "destination_id": 203,
+    "name": "Hotel Alanya Beach",
+    "description": "Mooi hotel direct aan het strand van Alanya.",
+    "headline": "Toplocatie in Alanya!",
+    "features": ["Zwembad", "Wifi", "Strand"],
+    "images": [
+      "https://hotelimages.sunhotels.net/HotelInfo/hotelImage.aspx?id=1001"
+    ]
+  },
+  {
+    "hotel_id": "1002",
+    "destination_id": 204,
+    "name": "Antalya Resort",
+    "description": "Luxe resort met spa en meerdere zwembaden.",
+    "headline": "Luxe in Antalya",
+    "features": ["Spa", "All-inclusive", "Kidsclub"],
+    "images": [
+      "https://hotelimages.sunhotels.net/HotelInfo/hotelImage.aspx?id=1002"
+    ]
+  },
+  {
+    "hotel_id": "1003",
+    "destination_id": 205,
+    "name": "Marmaris Family Hotel",
+    "description": "Familiehotel met glijbanen en animatie.",
+    "headline": "Familievakantie in Marmaris",
+    "features": ["Glijbanen", "Animatie", "All-inclusive"],
+    "images": [
+      "https://hotelimages.sunhotels.net/HotelInfo/hotelImage.aspx?id=1003"
+    ]
+  }
+]
