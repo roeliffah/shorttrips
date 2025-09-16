@@ -139,4 +139,3 @@ export default function Home() {
       <a href="/bookings" className="text-blue-600 underline block mt-8">Bekijk boekingen</a>
     </main>
   );
-}
