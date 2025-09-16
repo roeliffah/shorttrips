@@ -64,7 +64,6 @@ export default function SearchForm({ onSearch }: { onSearch: (params: SearchPara
           </div>
         </div>
       </div>
-      {/* TODO: Uitbreidbare filteropties links */}
       <button className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4" type="submit">Zoeken</button>
     </form>
   );
