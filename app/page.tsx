@@ -47,23 +47,31 @@ export default function Home() {
         {loading && <div>Hotels laden...</div>}
         {error && <div className="text-red-600">{error}</div>}
         {hotels.map((hotel: any) => (
-          <HotelCard key={hotel.hotel_id || hotel.id} hotel={{
-            id: hotel.hotel_id || hotel.id,
-            name: hotel.name,
-            city: hotel.city,
-            country: hotel.country,
-            imageUrl: hotel.image_url || hotel.mainImage,
-            description: hotel.description || '',
-            price: hotel.price_total || hotel.price,
-            rating: hotel.star_rating || hotel.rating,
-            reviews: hotel.reviews,
-            roomType: hotel.roomType,
-            checkIn: hotel.checkIn,
-            checkOut: hotel.checkOut,
-            persons: hotel.persons,
-            children: hotel.children,
-            rooms: hotel.rooms,
-          }} />
+          <HotelCard
+            key={hotel.hotel_id || hotel.id}
+            hotel={{
+              id: Number(hotel.hotel_id || hotel.id),
+              name: hotel.name,
+              city: hotel.city || "",
+              country: hotel.country || "",
+              imageUrl: hotel.images?.[0] || hotel.image_url || hotel.mainImage,
+              description: hotel.description || '',
+              // 15% opslag, 2 decimalen, euroteken in HotelCard
+              price: hotel.price
+                ? Number((hotel.price * 1.15).toFixed(2))
+                : hotel.price_total
+                ? Number((hotel.price_total * 1.15).toFixed(2))
+                : undefined,
+              rating: hotel.star_rating || hotel.rating,
+              reviews: hotel.reviews,
+              roomType: hotel.roomType,
+              checkIn: hotel.checkIn,
+              checkOut: hotel.checkOut,
+              persons: hotel.persons,
+              children: hotel.children,
+              rooms: hotel.rooms,
+            }}
+          />
         ))}
       </div>
       <a href="/bookings" className="text-blue-600 underline block mt-8">Bekijk boekingen</a>
