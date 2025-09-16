@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"app/page.tsx -> ./search-form\":{\"id\":\"app/page.tsx -> ./search-form\",\"files\":[\"static/chunks/_app-pages-browser_app_search-form_tsx.js\"]}}"
