@@ -187,11 +187,11 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto">
         {tab === 'snel' && (
           <label className="block mb-2">
-            Bestemming (city_id of naam):
+            Bestemming (Land):
             <input
               type="text"
               className="border p-2 w-full mt-1"
-              placeholder="Typ een bestemming of city_id..."
+              placeholder="Bestemming (Land)"
               value={destinationInput}
               onChange={e => setDestinationInput(e.target.value)}
               autoComplete="off"
