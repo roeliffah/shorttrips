@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export type SearchParams = {
   query: string;
@@ -17,15 +17,90 @@ export default function SearchForm({ onSearch }: { onSearch: (params: SearchPara
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState({ age0_2: 0, age3_12: 0, age12_18: 0 });
   const [rooms, setRooms] = useState(1);
+  const [destinationInput, setDestinationInput] = useState('');
+  const [suggestions, setSuggestions] = useState<{ id: string; name: string }[]>([]);
+  const [selectedDestination, setSelectedDestination] = useState<{ id: string; name: string } | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Live zoeken op de bridge
+  useEffect(() => {
+    const controller = new AbortController();
+    if (destinationInput.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    fetch(`https://freestays.eu/api.php?action=destinations&query=${encodeURIComponent(destinationInput)}`, {
+      signal: controller.signal,
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.results)) {
+          setSuggestions(data.results);
+        } else {
+          setSuggestions([]);
+        }
+      })
+      .catch(() => setSuggestions([]));
+    return () => controller.abort();
+  }, [destinationInput]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSearch({ query, checkIn, checkOut, adults, children, rooms });
+    if (!selectedDestination) {
+      alert('Selecteer een geldige bestemming uit de lijst.');
+      return;
+    }
+    onSearch({
+      destination_id: selectedDestination.id,
+      query,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      rooms
+    });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto mt-8">
       <h2 className="text-xl font-bold mb-2">Zoek hotels</h2>
+      <label className="block mb-2 relative">
+        Bestemming:
+        <input
+          type="text"
+          className="border p-2 w-full mt-1"
+          placeholder="Typ een bestemming..."
+          value={destinationInput}
+          onChange={e => {
+            setDestinationInput(e.target.value);
+            setShowSuggestions(true);
+            setSelectedDestination(null);
+          }}
+          onFocus={() => setShowSuggestions(true)}
+          autoComplete="off"
+        />
+        {showSuggestions && destinationInput && (
+          <ul className="absolute z-10 bg-white border w-full mt-1 max-h-40 overflow-auto">
+            {suggestions.length > 0 ? (
+              suggestions.map(dest => (
+                <li
+                  key={dest.id}
+                  className="px-2 py-1 hover:bg-blue-100 cursor-pointer"
+                  onClick={() => {
+                    setDestinationInput(dest.name);
+                    setSelectedDestination(dest);
+                    setShowSuggestions(false);
+                  }}
+                >
+                  {dest.name}
+                </li>
+              ))
+            ) : (
+              <li className="px-2 py-1 text-gray-400">Geen suggesties</li>
+            )}
+          </ul>
+        )}
+      </label>
       <input className="border p-2 w-full" placeholder="Naam, stad of land" value={query} onChange={e => setQuery(e.target.value)} />
       <div className="flex gap-2">
         <div className="flex-1">
