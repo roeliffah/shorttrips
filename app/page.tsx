@@ -108,7 +108,7 @@ export default function Home() {
       <div className="mt-10">
         {loading && <div>Hotels laden...</div>}
         {error && <div className="text-red-600">{error}</div>}
-        {hotels.map((hotel: any) => (
+        {hotels.length > 0 && hotels.map((hotel: any) => (
           <HotelCard
             key={hotel.hotel_id || hotel.id}
             hotel={{
@@ -135,7 +135,11 @@ export default function Home() {
             }}
           />
         ))}
+        {hotels.length === 0 && !loading && !error && (
+          <div className="text-gray-500">Geen hotels gevonden.</div>
+        )}
       </div>
       <a href="/bookings" className="text-blue-600 underline block mt-8">Bekijk boekingen</a>
     </main>
   );
+}
