@@ -32,6 +32,7 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
   const [checkOut, setCheckOut] = useState(getDefaultDate(2));
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState({ age0_2: 0, age3_12: 0, age12_18: 0 });
+  const [childrenTotal, setChildrenTotal] = useState(0);
   const [rooms, setRooms] = useState(1);
   const [destinationInput, setDestinationInput] = useState('');
   const [suggestions, setSuggestions] = useState<{ id: string; name: string; country?: string; city_id?: string; resort_id?: string }[]>([]);
@@ -62,6 +63,13 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
     return () => controller.abort();
   }, [destinationInput]);
 
+  // Houd childrenTotal en children in sync
+  useEffect(() => {
+    const total = getTotalChildren(children);
+    if (total !== childrenTotal) setChildrenTotal(total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [children]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedDestination) {
@@ -69,24 +77,12 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
       return;
     }
 
-    // Zet data om naar GET-parameters voor de bridge
-    const params: SearchParams = {
-      destination_id: selectedDestination.id,
-      query,
-      checkIn,
-      checkOut,
-      adults,
-      children,
-      rooms
-    };
-
     // De bridge verwacht: country, city_id, resort_id, room, adults, children, start, end, date, key
-    // Vul deze uit de geselecteerde bestemming en formulier
     const key = "hlIGzfFEk5Af0dWNZO4p"; // Zet hier je eigen key
     const country = selectedDestination.country || "";
     const city_id = selectedDestination.city_id || selectedDestination.id || "";
     const resort_id = selectedDestination.resort_id || "";
-    const totalChildren = getTotalChildren(children);
+    const totalChildren = childrenTotal;
 
     // Datumformaten voor de bridge
     function formatDate(date: string) {
@@ -111,7 +107,15 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
     }
     setLoading(false);
 
-    if (onSearch) onSearch(params);
+    if (onSearch) onSearch({
+      destination_id: selectedDestination.id,
+      query,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      rooms
+    });
   }
 
   return (
@@ -158,47 +162,84 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
         <input className="border p-2 w-full" placeholder="Naam, stad of land" value={query} onChange={e => setQuery(e.target.value)} />
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="block text-sm">Check-in</label>
-            <input type="date" className="border p-2 w-full" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm">Check-out</label>
-            <input type="date" className="border p-2 w-full" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex-1">
             <label className="block text-sm">Volwassenen</label>
-            <input type="number" min={1} max={10} className="border p-2 w-full" value={adults} onChange={e => setAdults(Number(e.target.value))} />
+            <input
+              type="number"
+              min={1}
+              max={10}
+              className="border p-2 w-full"
+              value={adults}
+              onChange={e => setAdults(Number(e.target.value))}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm">Kinderen</label>
+            <input
+              type="number"
+              min={0}
+              max={15}
+              className="border p-2 w-full"
+              value={childrenTotal}
+              onChange={e => {
+                const val = Number(e.target.value);
+                setChildrenTotal(val);
+                // Reset leeftijden als totaal op 0
+                if (val === 0) {
+                  setChildren({ age0_2: 0, age3_12: 0, age12_18: 0 });
+                }
+              }}
+            />
           </div>
           <div className="flex-1">
             <label className="block text-sm">Kamers</label>
-            <input type="number" min={1} max={5} className="border p-2 w-full" value={rooms} onChange={e => setRooms(Number(e.target.value))} />
+            <input
+              type="number"
+              min={1}
+              max={5}
+              className="border p-2 w-full"
+              value={rooms}
+              onChange={e => setRooms(Number(e.target.value))}
+            />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-semibold mb-1">Kinderen</label>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <span className="text-xs">0-2 jaar</span>
-              <select className="border p-2 w-full" value={children.age0_2} onChange={e => setChildren(c => ({ ...c, age0_2: Number(e.target.value) }))}>
-                {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <div className="flex-1">
-              <span className="text-xs">3-12 jaar</span>
-              <select className="border p-2 w-full" value={children.age3_12} onChange={e => setChildren(c => ({ ...c, age3_12: Number(e.target.value) }))}>
-                {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <div className="flex-1">
-              <span className="text-xs">12-18 jaar</span>
-              <select className="border p-2 w-full" value={children.age12_18} onChange={e => setChildren(c => ({ ...c, age12_18: Number(e.target.value) }))}>
-                {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
+        {/* Toon leeftijd dropdowns alleen als kinderen > 0 */}
+        {childrenTotal > 0 && (
+          <div>
+            <label className="block text-sm font-semibold mb-1">Leeftijd kinderen</label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <span className="text-xs">0-2 jaar</span>
+                <select
+                  className="border p-2 w-full"
+                  value={children.age0_2}
+                  onChange={e => setChildren(c => ({ ...c, age0_2: Number(e.target.value) }))}
+                >
+                  {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <span className="text-xs">3-12 jaar</span>
+                <select
+                  className="border p-2 w-full"
+                  value={children.age3_12}
+                  onChange={e => setChildren(c => ({ ...c, age3_12: Number(e.target.value) }))}
+                >
+                  {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <span className="text-xs">12-18 jaar</span>
+                <select
+                  className="border p-2 w-full"
+                  value={children.age12_18}
+                  onChange={e => setChildren(c => ({ ...c, age12_18: Number(e.target.value) }))}
+                >
+                  {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
             </div>
           </div>
-        </div>
+        )}
         <button className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4" type="submit" disabled={loading}>
           {loading ? "Zoeken..." : "Zoeken"}
         </button>
