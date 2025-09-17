@@ -317,4 +317,4 @@ export default function Home() {
   );
 }
 
-// Testwijziging: 18-09-2025
+// Testwijziging: 18-09-2025 nieuwe instellingen branches
