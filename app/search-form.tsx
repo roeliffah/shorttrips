@@ -161,12 +161,9 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
   return (
     <div>
-      {/* Welkomsttekst alleen bovenaan, niet in formulier */}
+      {/* Alleen de titel tonen, geen extra tekst */}
       <div className="max-w-xl mx-auto mb-4">
         <h1 className="text-2xl font-bold mb-2">Welkom bij Shorttrips!</h1>
-        <p className="mb-4">
-          Boek je volgende zonvakantie en gebruik je cheque voor je gratis kamer of korting.
-        </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto">
         <label className="block mb-2">
