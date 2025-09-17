@@ -29,8 +29,10 @@ function getTotalChildren(children: { age0_2: number; age3_12: number; age12_18:
 }
 
 export default function SearchForm({ onSearch }: { onSearch?: (params: SearchParams) => void }) {
+  // Tab state
+  const [tab, setTab] = useState<'vrij' | 'uitgebreid'>('vrij');
+
   // Vrij zoeken
-  const [query, setQuery] = useState('');
   const [destinationInput, setDestinationInput] = useState('');
   // Uitgebreid zoeken dropdowns
   const [countryId, setCountryId] = useState('');
@@ -49,23 +51,25 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
   const [hotels, setHotels] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Ophalen landen bij laden (enkel bij eerste render)
+  // Ophalen landen bij openen tab Uitgebreid zoeken
   useEffect(() => {
-    async function fetchCountries() {
-      try {
-        const res = await fetch('https://freestays.eu/api.php?action=countries');
-        const data = await res.json();
-        setCountries(data.results || []);
-      } catch {
-        setCountries([]);
+    if (tab === 'uitgebreid') {
+      async function fetchCountries() {
+        try {
+          const res = await fetch('https://freestays.eu/api.php?action=countries');
+          const data = await res.json();
+          setCountries(data.results || []);
+        } catch {
+          setCountries([]);
+        }
       }
+      fetchCountries();
     }
-    fetchCountries();
-  }, []);
+  }, [tab]);
 
   // Ophalen regio's als countryId wijzigt
   useEffect(() => {
-    if (countryId) {
+    if (tab === 'uitgebreid' && countryId) {
       async function fetchRegions() {
         try {
           const res = await fetch(`https://freestays.eu/api.php?action=regions&country_id=${countryId}`);
@@ -79,17 +83,17 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
       setRegionId('');
       setCities([]);
       setCityId('');
-    } else {
+    } else if (tab === 'uitgebreid') {
       setRegions([]);
       setRegionId('');
       setCities([]);
       setCityId('');
     }
-  }, [countryId]);
+  }, [countryId, tab]);
 
   // Ophalen steden als regionId wijzigt
   useEffect(() => {
-    if (regionId) {
+    if (tab === 'uitgebreid' && regionId) {
       async function fetchCities() {
         try {
           const res = await fetch(`https://freestays.eu/api.php?action=cities&region_id=${regionId}`);
@@ -101,26 +105,31 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
       }
       fetchCities();
       setCityId('');
-    } else {
+    } else if (tab === 'uitgebreid') {
       setCities([]);
       setCityId('');
     }
-  }, [regionId]);
+  }, [regionId, tab]);
+
+  // Reset velden bij tab wissel
+  useEffect(() => {
+    if (tab === 'vrij') {
+      setCountryId('');
+      setRegionId('');
+      setCityId('');
+      setCountries([]);
+      setRegions([]);
+      setCities([]);
+    } else {
+      setDestinationInput('');
+    }
+  }, [tab]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Bepaal city_id voor de API-call
     let apiCityId = '';
-    if (destinationInput) {
-      apiCityId = destinationInput;
-    } else if (countryId && regionId) {
-      apiCityId = cityId || regionId;
-    } else {
-      alert('Vul een bestemming in of kies een land en regio.');
-      return;
-    }
-
+    let url = '';
     const key = "hlIGzfFEk5Af0dWNZO4p";
     const totalChildren = childrenTotal;
 
@@ -132,9 +141,23 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
     const end = formatDate(checkOut);
     const dateRange = `${checkIn} - ${checkOut}`;
 
-    setLoading(true);
+    if (tab === 'vrij') {
+      if (!destinationInput) {
+        alert('Vul een bestemming in.');
+        return;
+      }
+      apiCityId = destinationInput;
+      url = `https://freestays.eu/api.php?action=quicksearch&key=${key}&city_id=${encodeURIComponent(apiCityId)}&room=${rooms}&adults=${adults}&children=${totalChildren}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&date=${encodeURIComponent(dateRange)}`;
+    } else {
+      if (!countryId || !regionId) {
+        alert('Selecteer minimaal een land en regio.');
+        return;
+      }
+      apiCityId = cityId || regionId;
+      url = `https://freestays.eu/api.php?action=quicksearch&key=${key}&city_id=${encodeURIComponent(apiCityId)}&room=${rooms}&adults=${adults}&children=${totalChildren}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&date=${encodeURIComponent(dateRange)}`;
+    }
 
-    const url = `https://freestays.eu/api.php?action=quicksearch&key=${key}&city_id=${encodeURIComponent(apiCityId)}&room=${rooms}&adults=${adults}&children=${totalChildren}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&date=${encodeURIComponent(dateRange)}`;
+    setLoading(true);
 
     try {
       const response = await fetch(url);
@@ -147,7 +170,7 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
     if (onSearch) onSearch({
       destination_id: apiCityId,
-      query,
+      query: "",
       checkIn,
       checkOut,
       adults,
@@ -161,66 +184,96 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
   return (
     <div>
-      {/* Alleen de titel tonen, geen extra tekst */}
       <div className="max-w-xl mx-auto mb-4">
         <h1 className="text-2xl font-bold mb-2">Welkom bij Shorttrips!</h1>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto">
-        <label className="block mb-2">
+      <div className="flex gap-2 mb-4 max-w-xl mx-auto">
+        <button
+          type="button"
+          className={`px-4 py-2 rounded-t ${tab === 'vrij' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          onClick={() => setTab('vrij')}
+        >
           Vrij zoeken
-          <input
-            type="text"
-            className="border p-2 w-full mt-1"
-            placeholder="Bestemming (Land)"
-            value={destinationInput}
-            onChange={e => setDestinationInput(e.target.value)}
-            autoComplete="off"
-          />
-        </label>
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 rounded-t ${tab === 'uitgebreid' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+          onClick={() => setTab('uitgebreid')}
+        >
+          Uitgebreid zoeken
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto">
+        {tab === 'vrij' && (
+          <>
+            <label className="block mb-2">
+              Bestemming
+              <input
+                type="text"
+                className="border p-2 w-full mt-1"
+                placeholder="Bestemming (Land, stad of hotel)"
+                value={destinationInput}
+                onChange={e => setDestinationInput(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          </>
+        )}
+        {tab === 'uitgebreid' && (
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-sm">Land</label>
+              <select
+                className="border p-2 w-full"
+                value={countryId}
+                onChange={e => setCountryId(e.target.value)}
+              >
+                <option value="">Kies land</option>
+                {countries.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm">Regio</label>
+              <select
+                className="border p-2 w-full"
+                value={regionId}
+                onChange={e => setRegionId(e.target.value)}
+                disabled={!countryId}
+              >
+                <option value="">Kies regio</option>
+                {regions.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm">Stad (optioneel)</label>
+              <select
+                className="border p-2 w-full"
+                value={cityId}
+                onChange={e => setCityId(e.target.value)}
+                disabled={!regionId}
+              >
+                <option value="">Kies stad</option>
+                {cities.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="block text-sm">Land</label>
-            <select
-              className="border p-2 w-full"
-              value={countryId}
-              onChange={e => setCountryId(e.target.value)}
-            >
-              <option value="">Kies land</option>
-              {countries.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <label className="block text-sm">Check-in</label>
+            <input type="date" className="border p-2 w-full" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
           </div>
           <div className="flex-1">
-            <label className="block text-sm">Regio</label>
-            <select
-              className="border p-2 w-full"
-              value={regionId}
-              onChange={e => setRegionId(e.target.value)}
-              disabled={!countryId}
-            >
-              <option value="">Kies regio</option>
-              {regions.map(r => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm">Stad (optioneel)</label>
-            <select
-              className="border p-2 w-full"
-              value={cityId}
-              onChange={e => setCityId(e.target.value)}
-              disabled={!regionId}
-            >
-              <option value="">Kies stad</option>
-              {cities.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <label className="block text-sm">Check-out</label>
+            <input type="date" className="border p-2 w-full" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
           </div>
         </div>
-        <input className="border p-2 w-full" placeholder="Naam, stad of land" value={query} onChange={e => setQuery(e.target.value)} />
         <div className="flex gap-2">
           <div className="flex-1">
             <label className="block text-sm">Volwassenen</label>
@@ -299,16 +352,6 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
             </div>
           </div>
         )}
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <label className="block text-sm">Check-in</label>
-            <input type="date" className="border p-2 w-full" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm">Check-out</label>
-            <input type="date" className="border p-2 w-full" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
-          </div>
-        </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4" type="submit" disabled={loading}>
           {loading ? "Zoeken..." : "Zoeken"}
         </button>
