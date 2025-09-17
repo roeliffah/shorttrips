@@ -29,10 +29,10 @@ function getTotalChildren(children: { age0_2: number; age3_12: number; age12_18:
 }
 
 export default function SearchForm({ onSearch }: { onSearch?: (params: SearchParams) => void }) {
-  // Snel zoeken
+  // Vrij zoeken
   const [query, setQuery] = useState('');
   const [destinationInput, setDestinationInput] = useState('');
-  // Uitgebreid zoeken
+  // Uitgebreid zoeken dropdowns
   const [countryId, setCountryId] = useState('');
   const [regionId, setRegionId] = useState('');
   const [cityId, setCityId] = useState('');
@@ -48,7 +48,6 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
   const [rooms, setRooms] = useState(1);
   const [hotels, setHotels] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<'snel' | 'uitgebreid'>('snel');
 
   // Ophalen landen bij laden (enkel bij eerste render)
   useEffect(() => {
@@ -113,19 +112,13 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
     // Bepaal city_id voor de API-call
     let apiCityId = '';
-    if (tab === 'snel') {
+    if (destinationInput) {
       apiCityId = destinationInput;
-      if (!apiCityId) {
-        alert('Vul een bestemming in.');
-        return;
-      }
+    } else if (countryId && regionId) {
+      apiCityId = cityId || regionId;
     } else {
-      // uitgebreid zoeken
-      if (!countryId || !regionId) {
-        alert('Selecteer minimaal een land en regio.');
-        return;
-      }
-      apiCityId = cityId || regionId; // cityId optioneel, anders regionId
+      alert('Vul een bestemming in of kies een land en regio.');
+      return;
     }
 
     const key = "hlIGzfFEk5Af0dWNZO4p";
@@ -168,81 +161,67 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
   return (
     <div>
-      <div className="flex gap-2 mb-4 max-w-xl mx-auto">
-        <button
-          type="button"
-          className={`px-4 py-2 rounded-t ${tab === 'snel' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-          onClick={() => setTab('snel')}
-        >
-          Snel zoeken
-        </button>
-        <button
-          type="button"
-          className={`px-4 py-2 rounded-t ${tab === 'uitgebreid' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-          onClick={() => setTab('uitgebreid')}
-        >
-          Uitgebreid zoeken
-        </button>
+      <div className="max-w-xl mx-auto mb-4">
+        <h1 className="text-2xl font-bold mb-2">Welkom bij Shorttrips!</h1>
+        <p className="mb-4">
+          Boek je volgende zonvakantie en gebruik je cheque voor je gratis kamer of korting.
+        </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto">
-        {tab === 'snel' && (
-          <label className="block mb-2">
-            Bestemming (Land):
-            <input
-              type="text"
-              className="border p-2 w-full mt-1"
-              placeholder="Bestemming (Land)"
-              value={destinationInput}
-              onChange={e => setDestinationInput(e.target.value)}
-              autoComplete="off"
-            />
-          </label>
-        )}
-        {tab === 'uitgebreid' && (
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-sm">Land</label>
-              <select
-                className="border p-2 w-full"
-                value={countryId}
-                onChange={e => setCountryId(e.target.value)}
-              >
-                <option value="">Kies land</option>
-                {countries.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm">Regio</label>
-              <select
-                className="border p-2 w-full"
-                value={regionId}
-                onChange={e => setRegionId(e.target.value)}
-                disabled={!countryId}
-              >
-                <option value="">Kies regio</option>
-                {regions.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm">Stad (optioneel)</label>
-              <select
-                className="border p-2 w-full"
-                value={cityId}
-                onChange={e => setCityId(e.target.value)}
-                disabled={!regionId}
-              >
-                <option value="">Kies stad</option>
-                {cities.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+        <label className="block mb-2">
+          Vrij zoeken
+          <input
+            type="text"
+            className="border p-2 w-full mt-1"
+            placeholder="Bestemming (Land)"
+            value={destinationInput}
+            onChange={e => setDestinationInput(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="block text-sm">Land</label>
+            <select
+              className="border p-2 w-full"
+              value={countryId}
+              onChange={e => setCountryId(e.target.value)}
+            >
+              <option value="">Kies land</option>
+              {countries.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
-        )}
+          <div className="flex-1">
+            <label className="block text-sm">Regio</label>
+            <select
+              className="border p-2 w-full"
+              value={regionId}
+              onChange={e => setRegionId(e.target.value)}
+              disabled={!countryId}
+            >
+              <option value="">Kies regio</option>
+              {regions.map(r => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm">Stad (optioneel)</label>
+            <select
+              className="border p-2 w-full"
+              value={cityId}
+              onChange={e => setCityId(e.target.value)}
+              disabled={!regionId}
+            >
+              <option value="">Kies stad</option>
+              {cities.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
         <input className="border p-2 w-full" placeholder="Naam, stad of land" value={query} onChange={e => setQuery(e.target.value)} />
         <div className="flex gap-2">
           <div className="flex-1">
