@@ -12,7 +12,7 @@ export type SearchParams = {
     age12_18: number;
   };
   rooms: number;
-  destination_id?: string; // <-- voeg deze regel toe
+  destination_id?: string; // <-- deze regel toevoegen
 };
 
 export default function SearchForm({ onSearch }: { onSearch: (params: SearchParams) => void }) {
