@@ -50,19 +50,33 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'snel' | 'uitgebreid'>('snel');
 
-  // Ophalen landen bij laden
+  // Ophalen landen bij laden (enkel bij eerste render)
   useEffect(() => {
-    fetch('https://freestays.eu/api.php?action=countries')
-      .then(res => res.json())
-      .then(data => setCountries(data.results || []));
+    async function fetchCountries() {
+      try {
+        const res = await fetch('https://freestays.eu/api.php?action=countries');
+        const data = await res.json();
+        setCountries(data.results || []);
+      } catch {
+        setCountries([]);
+      }
+    }
+    fetchCountries();
   }, []);
 
   // Ophalen regio's als countryId wijzigt
   useEffect(() => {
     if (countryId) {
-      fetch(`https://freestays.eu/api.php?action=regions&country_id=${countryId}`)
-        .then(res => res.json())
-        .then(data => setRegions(data.results || []));
+      async function fetchRegions() {
+        try {
+          const res = await fetch(`https://freestays.eu/api.php?action=regions&country_id=${countryId}`);
+          const data = await res.json();
+          setRegions(data.results || []);
+        } catch {
+          setRegions([]);
+        }
+      }
+      fetchRegions();
       setRegionId('');
       setCities([]);
       setCityId('');
@@ -77,9 +91,16 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
   // Ophalen steden als regionId wijzigt
   useEffect(() => {
     if (regionId) {
-      fetch(`https://freestays.eu/api.php?action=cities&region_id=${regionId}`)
-        .then(res => res.json())
-        .then(data => setCities(data.results || []));
+      async function fetchCities() {
+        try {
+          const res = await fetch(`https://freestays.eu/api.php?action=cities&region_id=${regionId}`);
+          const data = await res.json();
+          setCities(data.results || []);
+        } catch {
+          setCities([]);
+        }
+      }
+      fetchCities();
       setCityId('');
     } else {
       setCities([]);
