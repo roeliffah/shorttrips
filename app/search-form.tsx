@@ -161,6 +161,7 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
   return (
     <div>
+      {/* Welkomsttekst alleen bovenaan, niet in formulier */}
       <div className="max-w-xl mx-auto mb-4">
         <h1 className="text-2xl font-bold mb-2">Welkom bij Shorttrips!</h1>
         <p className="mb-4">
