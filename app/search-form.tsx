@@ -6,8 +6,13 @@ export type SearchParams = {
   checkIn: string;
   checkOut: string;
   adults: number;
-  children: { age0_2: number; age3_12: number; age12_18: number };
+  children: {
+    age0_2: number;
+    age3_12: number;
+    age12_18: number;
+  };
   rooms: number;
+  destination_id?: string; // <-- voeg deze regel toe
 };
 
 export default function SearchForm({ onSearch }: { onSearch: (params: SearchParams) => void }) {
