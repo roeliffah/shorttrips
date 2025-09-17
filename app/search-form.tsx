@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export type SearchParams = {
   query: string;
@@ -35,53 +35,25 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
   const [childrenTotal, setChildrenTotal] = useState(0);
   const [rooms, setRooms] = useState(1);
   const [destinationInput, setDestinationInput] = useState('');
-  const [suggestions, setSuggestions] = useState<{ id: string; name: string; country?: string; city_id?: string; resort_id?: string }[]>([]);
-  const [selectedDestination, setSelectedDestination] = useState<{ id: string; name: string; country?: string; city_id?: string; resort_id?: string } | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [hotels, setHotels] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Live zoeken op de bridge
-  useEffect(() => {
-    const controller = new AbortController();
-    if (destinationInput.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    fetch(`https://freestays.eu/api.php?action=destinations&query=${encodeURIComponent(destinationInput)}`, {
-      signal: controller.signal,
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data.results)) {
-          setSuggestions(data.results);
-        } else {
-          setSuggestions([]);
-        }
-      })
-      .catch(() => setSuggestions([]));
-    return () => controller.abort();
-  }, [destinationInput]);
-
   // Houd childrenTotal en children in sync
-  useEffect(() => {
-    const total = getTotalChildren(children);
-    if (total !== childrenTotal) setChildrenTotal(total);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [children]);
+  // (optioneel: als je wilt dat dropdowns altijd optellen tot childrenTotal)
+  // useEffect(() => {
+  //   const total = getTotalChildren(children);
+  //   if (total !== childrenTotal) setChildrenTotal(total);
+  // }, [children]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedDestination) {
-      alert('Selecteer een geldige bestemming uit de lijst.');
+    if (!destinationInput) {
+      alert('Vul een bestemming in.');
       return;
     }
 
-    // De bridge verwacht: country, city_id, resort_id, room, adults, children, start, end, date, key
     const key = "hlIGzfFEk5Af0dWNZO4p"; // Zet hier je eigen key
-    const country = selectedDestination.country || "";
-    const city_id = selectedDestination.city_id || selectedDestination.id || "";
-    const resort_id = selectedDestination.resort_id || "";
+    const city_id = destinationInput; // Nu direct uit het invoerveld
     const totalChildren = childrenTotal;
 
     // Datumformaten voor de bridge
@@ -96,7 +68,7 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
 
     setLoading(true);
 
-    const url = `https://freestays.eu/api.php?action=quicksearch&key=${key}&hotel?country=${country}&city_id=${city_id}&resort_id=${resort_id}&room=${rooms}&adults=${adults}&children=${totalChildren}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&date=${encodeURIComponent(dateRange)}`;
+    const url = `https://freestays.eu/api.php?action=quicksearch&key=${key}&city_id=${encodeURIComponent(city_id)}&room=${rooms}&adults=${adults}&children=${totalChildren}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&date=${encodeURIComponent(dateRange)}`;
 
     try {
       const response = await fetch(url);
@@ -108,7 +80,7 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
     setLoading(false);
 
     if (onSearch) onSearch({
-      destination_id: selectedDestination.id,
+      destination_id: city_id,
       query,
       checkIn,
       checkOut,
@@ -122,42 +94,16 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
     <div>
       <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow max-w-xl mx-auto mt-8">
         <h2 className="text-xl font-bold mb-2">Zoek hotels</h2>
-        <label className="block mb-2 relative">
-          Bestemming:
+        <label className="block mb-2">
+          Bestemming (city_id of naam):
           <input
             type="text"
             className="border p-2 w-full mt-1"
-            placeholder="Typ een bestemming..."
+            placeholder="Typ een bestemming of city_id..."
             value={destinationInput}
-            onChange={e => {
-              setDestinationInput(e.target.value);
-              setShowSuggestions(true);
-              setSelectedDestination(null);
-            }}
-            onFocus={() => setShowSuggestions(true)}
+            onChange={e => setDestinationInput(e.target.value)}
             autoComplete="off"
           />
-          {showSuggestions && destinationInput && (
-            <ul className="absolute z-10 bg-white border w-full mt-1 max-h-40 overflow-auto">
-              {suggestions.length > 0 ? (
-                suggestions.map(dest => (
-                  <li
-                    key={dest.id}
-                    className="px-2 py-1 hover:bg-blue-100 cursor-pointer"
-                    onClick={() => {
-                      setDestinationInput(dest.name);
-                      setSelectedDestination(dest);
-                      setShowSuggestions(false);
-                    }}
-                  >
-                    {dest.name}
-                  </li>
-                ))
-              ) : (
-                <li className="px-2 py-1 text-gray-400">Geen suggesties</li>
-              )}
-            </ul>
-          )}
         </label>
         <input className="border p-2 w-full" placeholder="Naam, stad of land" value={query} onChange={e => setQuery(e.target.value)} />
         <div className="flex gap-2">
@@ -183,7 +129,6 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
               onChange={e => {
                 const val = Number(e.target.value);
                 setChildrenTotal(val);
-                // Reset leeftijden als totaal op 0
                 if (val === 0) {
                   setChildren({ age0_2: 0, age3_12: 0, age12_18: 0 });
                 }
@@ -202,7 +147,6 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
             />
           </div>
         </div>
-        {/* Toon leeftijd dropdowns alleen als kinderen > 0 */}
         {childrenTotal > 0 && (
           <div>
             <label className="block text-sm font-semibold mb-1">Leeftijd kinderen</label>
@@ -240,6 +184,16 @@ export default function SearchForm({ onSearch }: { onSearch?: (params: SearchPar
             </div>
           </div>
         )}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="block text-sm">Check-in</label>
+            <input type="date" className="border p-2 w-full" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm">Check-out</label>
+            <input type="date" className="border p-2 w-full" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
+          </div>
+        </div>
         <button className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4" type="submit" disabled={loading}>
           {loading ? "Zoeken..." : "Zoeken"}
         </button>
