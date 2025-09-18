@@ -96,8 +96,9 @@ export default function ZoekenHotels() {
     setForm((prev: any) => ({
       ...prev,
       destinationInput: suggestion.Name,
-      countryId: suggestion.DestinationId,
-      // Je kunt hier eventueel regio/stad id's toevoegen als je die uit de suggestie haalt
+      countryId: suggestion.DestinationId || "",
+      regionId: suggestion.ResortId || "",
+      cityId: suggestion.CityId || "",
     }));
     setSuggestions([]);
     setShowSuggestions(false);

@@ -29,21 +29,23 @@ export async function GET(req: NextRequest) {
     const xml = await response.text();
     const json = await parseStringPromise(xml, { explicitArray: false });
 
-    // Debug: log de response
-    // console.log(JSON.stringify(json, null, 2));
-
     const result = json?.["soap:Envelope"]?.["soap:Body"]?.["GetDestinationsV2Response"]?.["GetDestinationsV2Result"];
     if (!result || !result.Destinations) {
-      return NextResponse.json({ results: [], debug: json });
+      return NextResponse.json({ results: [] }, { status: 200 });
     }
     const destinations = result.Destinations.Destination;
     const all = Array.isArray(destinations) ? destinations : [destinations];
-    // Filter op naam (land, regio, stad, hotelnaam)
     const filtered = all.filter((d: any) =>
       d.Name?.toLowerCase().includes(query?.toLowerCase() || "")
     );
-    return NextResponse.json({ results: filtered });
+    const mapped = filtered.map((d: any) => ({
+      Name: d.Name,
+      DestinationId: d.DestinationId,
+      ResortId: d.ResortId,
+      CityId: d.CityId,
+    }));
+    return NextResponse.json({ results: mapped });
   } catch (error) {
-    return NextResponse.json({ results: [], error: (error as Error).message });
+    return NextResponse.json({ results: [], error: (error as Error).message }, { status: 500 });
   }
 }
