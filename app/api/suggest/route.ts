@@ -29,9 +29,12 @@ export async function GET(req: NextRequest) {
     const xml = await response.text();
     const json = await parseStringPromise(xml, { explicitArray: false });
 
+    // Voeg deze regel toe voor debugging:
+    console.log("Sunhotels response:", JSON.stringify(json, null, 2));
+
     const result = json?.["soap:Envelope"]?.["soap:Body"]?.["GetDestinationsV2Response"]?.["GetDestinationsV2Result"];
     if (!result || !result.Destinations) {
-      return NextResponse.json({ results: [] }, { status: 200 });
+      return NextResponse.json({ results: [], debug: json });
     }
     const destinations = result.Destinations.Destination;
     const all = Array.isArray(destinations) ? destinations : [destinations];
@@ -46,6 +49,7 @@ export async function GET(req: NextRequest) {
     }));
     return NextResponse.json({ results: mapped });
   } catch (error) {
-    return NextResponse.json({ results: [], error: (error as Error).message }, { status: 500 });
+    console.error("Suggestie-API error:", error);
+    return NextResponse.json({ results: [], error: (error as Error).message });
   }
 }
