@@ -239,8 +239,9 @@ export default function ZoekenHotels() {
       ...form,
     };
     if (tab === "snel" && selectedSuggestion) {
-      searchData.countryId = selectedSuggestion.DestinationId;
-      // Voeg hier eventueel regio/city id's toe als je die uit de suggestie haalt
+      searchData.countryId = selectedSuggestion.DestinationId || "";
+      searchData.regionId = selectedSuggestion.ResortId || "";
+      searchData.cityId = selectedSuggestion.CityId || "";
     }
 
     const res = await fetch("/api/search", {
@@ -283,7 +284,7 @@ export default function ZoekenHotels() {
               className="border p-2 w-full"
               name="destinationInput"
               placeholder="Bestemming (vrij invoer)"
-              value={form.destinationInput}
+              value={selectedSuggestion ? selectedSuggestion.Name : form.destinationInput}
               onChange={handleDestinationInput}
               autoComplete="off"
               onFocus={() => setShowSuggestions(suggestions.length > 0)}
