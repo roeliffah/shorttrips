@@ -95,7 +95,7 @@ export default function ZoekenHotels() {
 
   // Reset velden bij tab wissel
   useEffect(() => {
-    if (tab === 'vrij') {
+    if (tab === 'snel') {
       setForm((prev: any) => ({
         ...prev,
         countryId: "",
