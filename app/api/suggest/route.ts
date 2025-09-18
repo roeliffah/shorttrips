@@ -17,25 +17,33 @@ export async function GET(req: NextRequest) {
       </soap:Body>
     </soap:Envelope>
   `;
-  const response = await fetch("http://xml.sunhotels.net/15/SOAP/NonStaticXMLAPI.asmx", {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      "SOAPAction": "http://xml.sunhotels.net/15/GetDestinationsV2"
-    },
-    body: soapBody
-  });
-  const xml = await response.text();
-  const json = await parseStringPromise(xml, { explicitArray: false });
-  const result = json?.["soap:Envelope"]?.["soap:Body"]?.["GetDestinationsV2Response"]?.["GetDestinationsV2Result"];
-  if (!result || !result.Destinations) {
-    return NextResponse.json({ results: [] });
+  try {
+    const response = await fetch("http://xml.sunhotels.net/15/SOAP/NonStaticXMLAPI.asmx", {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml; charset=utf-8",
+        "SOAPAction": "http://xml.sunhotels.net/15/GetDestinationsV2"
+      },
+      body: soapBody
+    });
+    const xml = await response.text();
+    const json = await parseStringPromise(xml, { explicitArray: false });
+
+    // Debug: log de response
+    // console.log(JSON.stringify(json, null, 2));
+
+    const result = json?.["soap:Envelope"]?.["soap:Body"]?.["GetDestinationsV2Response"]?.["GetDestinationsV2Result"];
+    if (!result || !result.Destinations) {
+      return NextResponse.json({ results: [], debug: json });
+    }
+    const destinations = result.Destinations.Destination;
+    const all = Array.isArray(destinations) ? destinations : [destinations];
+    // Filter op naam (land, regio, stad, hotelnaam)
+    const filtered = all.filter((d: any) =>
+      d.Name?.toLowerCase().includes(query?.toLowerCase() || "")
+    );
+    return NextResponse.json({ results: filtered });
+  } catch (error) {
+    return NextResponse.json({ results: [], error: (error as Error).message });
   }
-  const destinations = result.Destinations.Destination;
-  const all = Array.isArray(destinations) ? destinations : [destinations];
-  // Filter op naam (land, regio, stad, hotelnaam)
-  const filtered = all.filter((d: any) =>
-    d.Name?.toLowerCase().includes(query?.toLowerCase() || "")
-  );
-  return NextResponse.json({ results: filtered });
 }
