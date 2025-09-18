@@ -1,6 +1,13 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
+// Hulpfunctie voor datumformat YYYY-MM-DD
+function getDatePlus(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
 type Hotel = {
   id: string;
   name: string;
@@ -11,14 +18,14 @@ type Hotel = {
 type Option = { id: string; name: string };
 
 export default function ZoekenHotels() {
-  // Form state
+  // Form state met standaardwaarden
   const [form, setForm] = useState<any>({
     destinationInput: "",
     countryId: "",
     regionId: "",
     cityId: "",
-    checkIn: "",
-    checkOut: "",
+    checkIn: getDatePlus(1),
+    checkOut: getDatePlus(2),
     adults: 2,
     children: 0,
     childrenAges: [],
@@ -30,13 +37,11 @@ export default function ZoekenHotels() {
     distance: "",
   });
 
-  // Suggesties
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
   const suggestBoxRef = useRef<HTMLDivElement>(null);
 
-  // Opties
   const mealOptions: Option[] = [
     { id: "1", name: "Logies" },
     { id: "2", name: "Ontbijt" },
@@ -62,12 +67,10 @@ export default function ZoekenHotels() {
     { id: "4", name: "Appartement" },
   ];
 
-  // Resultaten
   const [results, setResults] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Suggesties ophalen
   async function handleDestinationInput(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setForm((prev: any) => ({ ...prev, destinationInput: value }));
@@ -96,7 +99,6 @@ export default function ZoekenHotels() {
     setShowSuggestions(false);
   }
 
-  // Klik buiten suggestiebox sluit deze
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -114,7 +116,6 @@ export default function ZoekenHotels() {
     };
   }, [showSuggestions]);
 
-  // Kind-leeftijd velden aanpassen aan aantal kinderen
   useEffect(() => {
     if (form.children > 0) {
       setForm((prev: any) => ({
@@ -139,7 +140,6 @@ export default function ZoekenHotels() {
     if (type === "number") {
       setForm((prev: any) => ({ ...prev, [name]: Number(value) }));
     } else if (name === "roomtypes") {
-      // Multi-select
       const options = (e.target as HTMLSelectElement).selectedOptions;
       const values = Array.from(options).map(opt => opt.value);
       setForm((prev: any) => ({ ...prev, roomtypes: values }));
@@ -154,14 +154,28 @@ export default function ZoekenHotels() {
     setResults([]);
     setError(null);
 
-    // Validatie: suggestie geselecteerd?
+    // Validatie: suggestie geselecteerd en verplichte velden ingevuld
     if (!selectedSuggestion) {
       setError("Selecteer een geldige bestemming uit de lijst.");
       setLoading(false);
       return;
     }
+    if (!form.checkIn || !form.checkOut) {
+      setError("Vul een geldige aankomst- en vertrekdatum in.");
+      setLoading(false);
+      return;
+    }
+    if (!form.adults || form.adults < 1) {
+      setError("Vul het aantal volwassenen in.");
+      setLoading(false);
+      return;
+    }
+    if (!form.rooms || form.rooms < 1) {
+      setError("Vul het aantal kamers in.");
+      setLoading(false);
+      return;
+    }
 
-    // Bouw de juiste zoekdata
     let searchData: any = {
       ...form,
       countryId: selectedSuggestion.DestinationId || "",
@@ -196,6 +210,7 @@ export default function ZoekenHotels() {
             onChange={handleDestinationInput}
             autoComplete="off"
             onFocus={() => setShowSuggestions(suggestions.length > 0)}
+            required
           />
           {showSuggestions && suggestions.length > 0 && (
             <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
@@ -218,6 +233,7 @@ export default function ZoekenHotels() {
             type="date"
             value={form.checkIn}
             onChange={handleChange}
+            required
           />
           <input
             className="border p-2 w-full"
@@ -225,6 +241,7 @@ export default function ZoekenHotels() {
             type="date"
             value={form.checkOut}
             onChange={handleChange}
+            required
           />
         </div>
         <div className="flex gap-2">
@@ -237,6 +254,7 @@ export default function ZoekenHotels() {
             value={form.adults}
             onChange={handleChange}
             placeholder="Volwassenen"
+            required
           />
           <input
             className="border p-2 w-full"
@@ -257,9 +275,9 @@ export default function ZoekenHotels() {
             value={form.rooms}
             onChange={handleChange}
             placeholder="Kamers"
+            required
           />
         </div>
-        {/* Kind-leeftijd dropdowns */}
         {form.children > 0 && (
           <div>
             <label className="block text-sm font-semibold mb-1">Leeftijd kinderen</label>
@@ -270,6 +288,7 @@ export default function ZoekenHotels() {
                   className="border p-2"
                   value={age}
                   onChange={e => handleChildAgeChange(idx, e.target.value)}
+                  required
                 >
                   <option value="">Leeftijd</option>
                   {Array.from({ length: 18 }, (_, i) => (
