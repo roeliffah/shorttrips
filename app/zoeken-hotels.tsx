@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type Hotel = {
   id: string;
@@ -11,7 +11,10 @@ type Hotel = {
 type Option = { id: string; name: string };
 
 export default function ZoekenHotels() {
+  // Tab state
   const [tab, setTab] = useState<'snel' | 'uitgebreid'>('snel');
+
+  // Form state
   const [form, setForm] = useState<any>({
     destinationInput: "",
     countryId: "",
@@ -29,37 +32,116 @@ export default function ZoekenHotels() {
     review: "",
     distance: "",
   });
+
+  // Snel zoeken suggesties
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
+  const suggestBoxRef = useRef<HTMLDivElement>(null);
+
+  // Uitgebreid zoeken dropdowns
   const [countries, setCountries] = useState<Option[]>([]);
   const [regions, setRegions] = useState<Option[]>([]);
   const [cities, setCities] = useState<Option[]>([]);
-  const [mealOptions, setMealOptions] = useState<Option[]>([
+
+  // Overige opties
+  const mealOptions: Option[] = [
     { id: "1", name: "Logies" },
     { id: "2", name: "Ontbijt" },
     { id: "3", name: "Halfpension" },
     { id: "4", name: "Volpension" },
     { id: "5", name: "All Inclusive" },
-  ]);
-  const [transferOptions, setTransferOptions] = useState<Option[]>([
+  ];
+  const transferOptions: Option[] = [
     { id: "0", name: "Geen transfer" },
     { id: "1", name: "Inclusief transfer" },
-  ]);
-  const [reviewOptions, setReviewOptions] = useState<Option[]>([
+  ];
+  const reviewOptions: Option[] = [
     { id: "1", name: "1+" },
     { id: "2", name: "2+" },
     { id: "3", name: "3+" },
     { id: "4", name: "4+" },
     { id: "5", name: "5" },
-  ]);
-  const [roomtypeOptions, setRoomtypeOptions] = useState<Option[]>([
+  ];
+  const roomtypeOptions: Option[] = [
     { id: "1", name: "Standaard" },
     { id: "2", name: "Suite" },
     { id: "3", name: "Familiekamer" },
     { id: "4", name: "Appartement" },
-  ]);
+  ];
+
+  // Resultaten
   const [results, setResults] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Landen ophalen bij openen tab uitgebreid
+  // Suggesties ophalen bij snel zoeken
+  async function handleDestinationInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    setForm((prev: any) => ({ ...prev, destinationInput: value }));
+    setSelectedSuggestion(null);
+    if (value.length > 2) {
+      const res = await fetch(`/api/suggest?q=${encodeURIComponent(value)}`);
+      const data = await res.json();
+      setSuggestions(data.results || []);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }
+
+  function handleSuggestionClick(suggestion: any) {
+    setSelectedSuggestion(suggestion);
+    setForm((prev: any) => ({
+      ...prev,
+      destinationInput: suggestion.Name,
+      countryId: suggestion.DestinationId,
+      // Je kunt hier eventueel regio/stad id's toevoegen als je die uit de suggestie haalt
+    }));
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+
+  // Klik buiten suggestiebox sluit deze
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        suggestBoxRef.current &&
+        !suggestBoxRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+    if (showSuggestions) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSuggestions]);
+
+  // Kind-leeftijd velden aanpassen aan aantal kinderen
+  useEffect(() => {
+    if (form.children > 0) {
+      setForm((prev: any) => ({
+        ...prev,
+        childrenAges: Array.from({ length: form.children }, (_, i) => prev.childrenAges[i] || "")
+      }));
+    } else {
+      setForm((prev: any) => ({ ...prev, childrenAges: [] }));
+    }
+  }, [form.children]);
+
+  function handleChildAgeChange(idx: number, value: string) {
+    setForm((prev: any) => {
+      const ages = [...prev.childrenAges];
+      ages[idx] = value;
+      return { ...prev, childrenAges: ages };
+    });
+  }
+
+  // Uitgebreid zoeken: landen ophalen bij openen tab uitgebreid
   useEffect(() => {
     if (tab === "uitgebreid") {
       fetch("/api/countries")
@@ -68,7 +150,7 @@ export default function ZoekenHotels() {
     }
   }, [tab]);
 
-  // Regio's ophalen als countryId wijzigt
+  // Uitgebreid zoeken: regio's ophalen als countryId wijzigt
   useEffect(() => {
     if (tab === "uitgebreid" && form.countryId) {
       fetch(`/api/regions?country_id=${form.countryId}`)
@@ -81,7 +163,7 @@ export default function ZoekenHotels() {
     }
   }, [form.countryId, tab]);
 
-  // Steden ophalen als regionId wijzigt
+  // Uitgebreid zoeken: steden ophalen als regionId wijzigt
   useEffect(() => {
     if (tab === "uitgebreid" && form.regionId) {
       fetch(`/api/cities?region_id=${form.regionId}`)
@@ -115,7 +197,12 @@ export default function ZoekenHotels() {
         ...prev,
         destinationInput: "",
       }));
+      setSelectedSuggestion(null);
+      setSuggestions([]);
+      setShowSuggestions(false);
     }
+    setResults([]);
+    setError(null);
   }, [tab]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -132,40 +219,40 @@ export default function ZoekenHotels() {
     }
   }
 
-  // Kind-leeftijd velden aanpassen aan aantal kinderen
-  useEffect(() => {
-    if (form.children > 0) {
-      setForm((prev: any) => ({
-        ...prev,
-        childrenAges: Array.from({ length: form.children }, (_, i) => prev.childrenAges[i] || "")
-      }));
-    } else {
-      setForm((prev: any) => ({ ...prev, childrenAges: [] }));
-    }
-  }, [form.children]);
-
-  function handleChildAgeChange(idx: number, value: string) {
-    setForm((prev: any) => {
-      const ages = [...prev.childrenAges];
-      ages[idx] = value;
-      return { ...prev, childrenAges: ages };
-    });
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setResults([]);
+    setError(null);
+
+    // Validatie snel zoeken: suggestie geselecteerd?
+    if (tab === "snel" && !selectedSuggestion) {
+      setError("Selecteer een geldige bestemming uit de lijst.");
+      setLoading(false);
+      return;
+    }
+
+    // Bouw de juiste zoekdata
+    let searchData: any = {
+      searchType: tab,
+      ...form,
+    };
+    if (tab === "snel" && selectedSuggestion) {
+      searchData.countryId = selectedSuggestion.DestinationId;
+      // Voeg hier eventueel regio/city id's toe als je die uit de suggestie haalt
+    }
+
     const res = await fetch("/api/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        searchType: tab,
-        ...form,
-      }),
+      body: JSON.stringify(searchData),
     });
     const data = await res.json();
-    setResults(data.results || []);
+    if (data.results && data.results.length > 0) {
+      setResults(data.results);
+    } else {
+      setError("Geen hotels gevonden.");
+    }
     setLoading(false);
   }
 
@@ -188,17 +275,32 @@ export default function ZoekenHotels() {
           Uitgebreid zoeken
         </button>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow">
+      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow relative">
         {tab === "snel" && (
-          <>
+          <div className="relative" ref={suggestBoxRef}>
             <input
               className="border p-2 w-full"
               name="destinationInput"
               placeholder="Bestemming (vrij invoer)"
               value={form.destinationInput}
-              onChange={handleChange}
+              onChange={handleDestinationInput}
+              autoComplete="off"
+              onFocus={() => setShowSuggestions(suggestions.length > 0)}
             />
-          </>
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
+                {suggestions.map(s => (
+                  <li
+                    key={s.DestinationId}
+                    className="p-2 hover:bg-blue-100 cursor-pointer"
+                    onClick={() => handleSuggestionClick(s)}
+                  >
+                    {s.Name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
         {tab === "uitgebreid" && (
           <>
@@ -323,6 +425,7 @@ export default function ZoekenHotels() {
             </div>
           </div>
         )}
+        {error && <div className="text-red-600">{error}</div>}
         <button className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4" type="submit" disabled={loading}>
           {loading ? "Zoeken..." : "Zoeken"}
         </button>
