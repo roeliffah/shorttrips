@@ -74,7 +74,13 @@ export default function ZoekenHotels() {
   async function handleDestinationInput(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setForm((prev: any) => ({ ...prev, destinationInput: value }));
-    setSelectedSuggestion(null);
+    // Alleen resetten als de gebruiker iets anders typt dan de huidige suggestie
+    if (
+      selectedSuggestion &&
+      value !== selectedSuggestion.Name
+    ) {
+      setSelectedSuggestion(null);
+    }
     if (value.length > 2) {
       const res = await fetch(`/api/suggest?q=${encodeURIComponent(value)}`);
       const data = await res.json();
@@ -211,6 +217,16 @@ export default function ZoekenHotels() {
             autoComplete="off"
             onFocus={() => setShowSuggestions(suggestions.length > 0)}
             required
+            onKeyDown={e => {
+              if (
+                e.key === "Enter" &&
+                suggestions.length === 1 &&
+                !selectedSuggestion
+              ) {
+                e.preventDefault();
+                handleSuggestionClick(suggestions[0]);
+              }
+            }}
           />
           {showSuggestions && suggestions.length > 0 && (
             <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
