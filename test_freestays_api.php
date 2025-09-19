@@ -1,5 +1,13 @@
 <?php
 
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Laad .env handmatig als deze bestaat
+if (file_exists(__DIR__ . '/.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+}
+
 header('Content-Type: application/json');
 
 // CORS headers
@@ -38,6 +46,7 @@ $secret   = getenv('DB_PASSWORD'); // Tijdelijk, zie opmerking hieronder
 
 // Voor nu gebruik je DB_PASSWORD als API-key in de frontend, maar maak later een aparte API-key aan!
 
+error_log('DEBUG: $_GET[key]=' . ($_GET['key'] ?? 'nvt') . ' $secret=' . $secret);
 if (!isset($_GET['key']) || $_GET['key'] !== $secret) {
     http_response_code(403);
     echo json_encode(['error' => 'Unauthorized']);
@@ -55,11 +64,6 @@ try {
     echo json_encode(['error' => 'Database connectie mislukt']);
     exit;
 }
-
-// Sunhotels API settings
-$api_user = "FreestaysTEST";
-$api_pass = "Vision2024!@";
-$api_url  = "https://xml.sunhotels.net/15/PostGet/NonStaticXMLAPI.asmx";
 
 // === Mapping en statische data helpers ===
 function load_destination_mapping() {
