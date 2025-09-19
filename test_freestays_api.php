@@ -1,13 +1,5 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php';
-
-// Laad .env handmatig als deze bestaat
-if (file_exists(__DIR__ . '/.env')) {
-    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
-}
-
 header('Content-Type: application/json');
 
 // CORS headers
@@ -31,20 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Credentials uit environment variabelen
-$db_host = getenv('DB_HOST');
-$db_port = getenv('DB_PORT') ?: 3306;
-$db_name = getenv('DB_DATABASE');
-$db_user = getenv('DB_USERNAME');
-$db_pass = getenv('DB_PASSWORD');
-$dsn = "mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4";
-
-$api_user = getenv('SUN_HOTEL_USERNAME');
-$api_pass = getenv('SUN_HOTEL_PASSWORD');
-$api_url  = getenv('SUN_HOTEL_URL');
-
-// *** HIER: API KEY UIT APARTE ENV-VARIABELE ***
-$secret = getenv('FREESTAYS_API_KEY');
+// Zet je API-key direct in de code:
+$secret = 'hlIGzfFEk5Af0dWNZO4p';
 
 // Debug
 error_log('DEBUG: $_GET[key]=' . ($_GET['key'] ?? 'nvt') . ' $secret=' . $secret);
@@ -54,6 +34,20 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secret) {
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
+
+// === DATABASE CONNECTIE ===
+// Vul hier je database gegevens direct in:
+$db_host = 'localhost';
+$db_port = 3306;
+$db_name = 'freestays';
+$db_user = 'freestays';
+$db_pass = 'hlIGzfFEk5Af0dWNZO4p';
+$dsn = "mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4";
+
+// Sunhotels API credentials direct in de code:
+$api_user = 'FreestaysTEST';
+$api_pass = 'Vision2024!@';
+$api_url  = 'https://xml.sunhotels.net/15/Post.asmx';
 
 // === DATABASE CONNECTIE ===
 try {
