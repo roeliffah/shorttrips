@@ -47,7 +47,7 @@ $dsn = "mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4";
 // Sunhotels API credentials direct in de code:
 $api_user = 'FreestaysTEST';
 $api_pass = 'Vision2024!@';
-$api_url  = 'https://xml.sunhotels.net/15/Post.asmx';
+$api_url  = 'https://xml.sunhotels.net/15/PostGet/nonStaticXMLAPI.asmx/';
 
 // === DATABASE CONNECTIE ===
 try {

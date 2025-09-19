@@ -142,13 +142,14 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selected) return;
+    // Gebruik destination_id als die bestaat, anders id (voor Sunhotels werkt destination_id!)
     onSearch({
-      destination_id: selected.id,
+      destination_id: selected.destination_id || selected.id,
       checkin: form.checkin,
       checkout: form.checkout,
       adults: form.adults,
       children: form.children,
-      rooms: form.rooms || 1, // <-- altijd minimaal 1 kamer
+      rooms: form.rooms || 1,
     });
   }
 
@@ -283,7 +284,7 @@ function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, 
       checkout: form.checkout,
       adults: form.adults,
       children: form.children,
-      rooms: form.rooms || 1, // <-- altijd minimaal 1 kamer
+      rooms: form.rooms || 1,
     };
     if (city) params.city_id = city;
     onSearch(params);
