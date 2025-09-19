@@ -1,5 +1,31 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+
+// Zet hier je echte API-key!
+const API_KEY = "hlIGzfFEk5Af0dWNZO4p";
+const API_BASE = "https://freestays.eu/api.php";
+
+// Helpers voor API-calls
+async function fetchDestinations(query: string) {
+  const url = `${API_BASE}?action=destinations&key=${API_KEY}&query=${encodeURIComponent(query)}`;
+  const res = await fetch(url);
+  return res.json();
+}
+async function fetchCountries() {
+  const url = `${API_BASE}?action=countries&key=${API_KEY}`;
+  const res = await fetch(url);
+  return res.json();
+}
+async function fetchRegions(countryId: string) {
+  const url = `${API_BASE}?action=regions&key=${API_KEY}&country_id=${countryId}`;
+  const res = await fetch(url);
+  return res.json();
+}
+async function fetchCities(regionId: string) {
+  const url = `${API_BASE}?action=cities&key=${API_KEY}&region_id=${regionId}`;
+  const res = await fetch(url);
+  return res.json();
+}
 
 // Hulpfunctie voor datumformat YYYY-MM-DD
 function getDatePlus(days: number) {
@@ -8,368 +34,358 @@ function getDatePlus(days: number) {
   return d.toISOString().split("T")[0];
 }
 
-type Hotel = {
-  id: string;
-  name: string;
-  description?: string;
-  images?: string[];
-};
-
-type Option = { id: string; name: string };
-
 export default function ZoekenHotels() {
-  // Form state met standaardwaarden
-  const [form, setForm] = useState<any>({
-    destinationInput: "",
-    countryId: "",
-    regionId: "",
-    cityId: "",
-    checkIn: getDatePlus(1),
-    checkOut: getDatePlus(2),
-    adults: 2,
-    children: 0,
-    childrenAges: [],
-    rooms: 1,
-    mealId: "",
-    transfer: "",
-    roomtypes: [],
-    review: "",
-    distance: "",
-  });
-
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
-  const suggestBoxRef = useRef<HTMLDivElement>(null);
-
-  const mealOptions: Option[] = [
-    { id: "1", name: "Logies" },
-    { id: "2", name: "Ontbijt" },
-    { id: "3", name: "Halfpension" },
-    { id: "4", name: "Volpension" },
-    { id: "5", name: "All Inclusive" },
-  ];
-  const transferOptions: Option[] = [
-    { id: "0", name: "Geen transfer" },
-    { id: "1", name: "Inclusief transfer" },
-  ];
-  const reviewOptions: Option[] = [
-    { id: "1", name: "1+" },
-    { id: "2", name: "2+" },
-    { id: "3", name: "3+" },
-    { id: "4", name: "4+" },
-    { id: "5", name: "5" },
-  ];
-  const roomtypeOptions: Option[] = [
-    { id: "1", name: "Standaard" },
-    { id: "2", name: "Suite" },
-    { id: "3", name: "Familiekamer" },
-    { id: "4", name: "Appartement" },
-  ];
-
-  const [results, setResults] = useState<Hotel[]>([]);
+  const [tab, setTab] = useState<"snel" | "uitgebreid">("snel");
+  const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function handleDestinationInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    setForm((prev: any) => ({ ...prev, destinationInput: value }));
-    // Alleen resetten als de gebruiker iets anders typt dan de huidige suggestie
-    if (
-      selectedSuggestion &&
-      value !== selectedSuggestion.Name
-    ) {
-      setSelectedSuggestion(null);
-    }
-    if (value.length > 2) {
-      const res = await fetch(`/api/suggest?q=${encodeURIComponent(value)}`);
-      const data = await res.json();
-      setSuggestions(data.results || []);
-      setShowSuggestions(true);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  }
-
-  function handleSuggestionClick(suggestion: any) {
-    setSelectedSuggestion(suggestion);
-    setForm((prev: any) => ({
-      ...prev,
-      destinationInput: suggestion.Name,
-      countryId: suggestion.DestinationId || "",
-      regionId: suggestion.ResortId || "",
-      cityId: suggestion.CityId || "",
-    }));
-    setSuggestions([]);
-    setShowSuggestions(false);
-  }
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        suggestBoxRef.current &&
-        !suggestBoxRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    }
-    if (showSuggestions) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showSuggestions]);
-
-  useEffect(() => {
-    if (form.children > 0) {
-      setForm((prev: any) => ({
-        ...prev,
-        childrenAges: Array.from({ length: form.children }, (_, i) => prev.childrenAges[i] || "")
-      }));
-    } else {
-      setForm((prev: any) => ({ ...prev, childrenAges: [] }));
-    }
-  }, [form.children]);
-
-  function handleChildAgeChange(idx: number, value: string) {
-    setForm((prev: any) => {
-      const ages = [...prev.childrenAges];
-      ages[idx] = value;
-      return { ...prev, childrenAges: ages };
-    });
-  }
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value, type } = e.target;
-    if (type === "number") {
-      setForm((prev: any) => ({ ...prev, [name]: Number(value) }));
-    } else if (name === "roomtypes") {
-      const options = (e.target as HTMLSelectElement).selectedOptions;
-      const values = Array.from(options).map(opt => opt.value);
-      setForm((prev: any) => ({ ...prev, roomtypes: values }));
-    } else {
-      setForm((prev: any) => ({ ...prev, [name]: value }));
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Callback voor beide zoekformulieren
+  async function handleSearch(params: Record<string, string | number>) {
     setLoading(true);
     setResults([]);
-    setError(null);
-
-    // Validatie: suggestie geselecteerd en verplichte velden ingevuld
-    if (!selectedSuggestion) {
-      setError("Selecteer een geldige bestemming uit de lijst.");
-      setLoading(false);
-      return;
-    }
-    if (!form.checkIn || !form.checkOut) {
-      setError("Vul een geldige aankomst- en vertrekdatum in.");
-      setLoading(false);
-      return;
-    }
-    if (!form.adults || form.adults < 1) {
-      setError("Vul het aantal volwassenen in.");
-      setLoading(false);
-      return;
-    }
-    if (!form.rooms || form.rooms < 1) {
-      setError("Vul het aantal kamers in.");
-      setLoading(false);
-      return;
-    }
-
-    let searchData: any = {
-      ...form,
-      countryId: selectedSuggestion.DestinationId || "",
-      regionId: selectedSuggestion.ResortId || "",
-      cityId: selectedSuggestion.CityId || "",
-    };
-
-    const res = await fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(searchData),
-    });
+    // Bouw de querystring op basis van de gekozen zoekmethode
+    const query = new URLSearchParams({
+      action: "quicksearch",
+      key: API_KEY,
+      ...params,
+    }).toString();
+    const url = `${API_BASE}?${query}`;
+    const res = await fetch(url);
     const data = await res.json();
-    if (data.results && data.results.length > 0) {
-      setResults(data.results);
-    } else {
-      setError("Geen hotels gevonden.");
-    }
+    setResults(data.results || []);
     setLoading(false);
   }
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Zoek hotels</h1>
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-4 rounded shadow relative">
-        <div className="relative" ref={suggestBoxRef}>
-          <input
-            className="border p-2 w-full"
-            name="destinationInput"
-            placeholder="Bestemming (vrij invoer)"
-            value={selectedSuggestion ? selectedSuggestion.Name : form.destinationInput}
-            onChange={handleDestinationInput}
-            autoComplete="off"
-            onFocus={() => setShowSuggestions(suggestions.length > 0)}
-            required
-            onKeyDown={e => {
-              if (
-                e.key === "Enter" &&
-                suggestions.length === 1 &&
-                !selectedSuggestion
-              ) {
-                e.preventDefault();
-                handleSuggestionClick(suggestions[0]);
-              }
-            }}
-          />
-          {showSuggestions && suggestions.length > 0 && (
-            <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
-              {suggestions.map(s => (
-                <li
-                  key={s.DestinationId}
-                  className="p-2 hover:bg-blue-100 cursor-pointer"
-                  onClick={() => handleSuggestionClick(s)}
-                >
-                  {s.Name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <input
-            className="border p-2 w-full"
-            name="checkIn"
-            type="date"
-            value={form.checkIn}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="border p-2 w-full"
-            name="checkOut"
-            type="date"
-            value={form.checkOut}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="flex gap-2">
-          <input
-            className="border p-2 w-full"
-            name="adults"
-            type="number"
-            min={1}
-            max={10}
-            value={form.adults}
-            onChange={handleChange}
-            placeholder="Volwassenen"
-            required
-          />
-          <input
-            className="border p-2 w-full"
-            name="children"
-            type="number"
-            min={0}
-            max={10}
-            value={form.children}
-            onChange={handleChange}
-            placeholder="Kinderen"
-          />
-          <input
-            className="border p-2 w-full"
-            name="rooms"
-            type="number"
-            min={1}
-            max={5}
-            value={form.rooms}
-            onChange={handleChange}
-            placeholder="Kamers"
-            required
-          />
-        </div>
-        {form.children > 0 && (
-          <div>
-            <label className="block text-sm font-semibold mb-1">Leeftijd kinderen</label>
-            <div className="flex gap-2">
-              {form.childrenAges.map((age: string, idx: number) => (
-                <select
-                  key={idx}
-                  className="border p-2"
-                  value={age}
-                  onChange={e => handleChildAgeChange(idx, e.target.value)}
-                  required
-                >
-                  <option value="">Leeftijd</option>
-                  {Array.from({ length: 18 }, (_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1} jaar</option>
-                  ))}
-                </select>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Optionele extra filters */}
-        <select name="mealId" className="border p-2 w-full" value={form.mealId} onChange={handleChange}>
-          <option value="">Maaltijdtype</option>
-          {mealOptions.map(m => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
-        <select name="transfer" className="border p-2 w-full" value={form.transfer} onChange={handleChange}>
-          <option value="">Transfer</option>
-          {transferOptions.map(t => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
-        <select name="roomtypes" className="border p-2 w-full" value={form.roomtypes} onChange={handleChange} multiple>
-          {roomtypeOptions.map(rt => (
-            <option key={rt.id} value={rt.id}>{rt.name}</option>
-          ))}
-        </select>
-        <select name="review" className="border p-2 w-full" value={form.review} onChange={handleChange}>
-          <option value="">Review</option>
-          {reviewOptions.map(r => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
-        <input
-          className="border p-2 w-full"
-          name="distance"
-          placeholder="Afstand (km)"
-          value={form.distance}
-          onChange={handleChange}
-          type="number"
-          min={0}
-        />
-        {error && <div className="text-red-600">{error}</div>}
-        <button className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4" type="submit" disabled={loading}>
-          {loading ? "Zoeken..." : "Zoeken"}
+      <div className="flex mb-4">
+        <button
+          className={`flex-1 p-2 ${tab === "snel" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          onClick={() => setTab("snel")}
+        >
+          Snel zoeken
         </button>
-      </form>
+        <button
+          className={`flex-1 p-2 ${tab === "uitgebreid" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          onClick={() => setTab("uitgebreid")}
+        >
+          Uitgebreid zoeken
+        </button>
+      </div>
+      {tab === "snel" ? (
+        <SnelZoekenForm onSearch={handleSearch} />
+      ) : (
+        <UitgebreidZoekenForm onSearch={handleSearch} />
+      )}
+
+      {/* Resultaten */}
       <div className="mt-8">
-        {results.length > 0 && (
+        {loading && <div className="text-center text-blue-600">Zoeken...</div>}
+        {!loading && results.length > 0 && (
           <div className="grid gap-4">
-            {results.map(hotel => (
-              <div key={hotel.id} className="bg-white rounded shadow p-4">
-                <div className="font-bold">{hotel.name}</div>
-                {hotel.images && hotel.images.length > 0 && (
-                  <img src={hotel.images[0]} alt={hotel.name} className="mt-2 rounded w-full max-h-40 object-cover" />
+            {results.map((hotel: any) => (
+              <div key={hotel.hotel_id || hotel.id} className="border rounded shadow p-4 flex gap-4 bg-white">
+                {hotel.image_url && (
+                  <img
+                    src={hotel.image_url}
+                    alt={hotel.name}
+                    className="w-32 h-24 object-cover rounded"
+                  />
                 )}
-                {hotel.description && (
-                  <div className="mt-2 text-sm">{hotel.description}</div>
-                )}
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg">{hotel.name}</h3>
+                  <div className="text-gray-600 text-sm">
+                    {hotel.city && <span>{hotel.city}, </span>}
+                    {hotel.country}
+                  </div>
+                  {hotel.star_rating && (
+                    <div className="text-yellow-500">
+                      {"★".repeat(Number(hotel.star_rating))}
+                    </div>
+                  )}
+                  {hotel.price_total && (
+                    <div className="mt-2 font-semibold">
+                      {hotel.price_total} {hotel.currency}
+                    </div>
+                  )}
+                  {/* Hier kun je later een link naar de detailpagina toevoegen */}
+                </div>
               </div>
             ))}
           </div>
         )}
+        {!loading && results.length === 0 && (
+          <div className="text-center text-gray-500 mt-8">Geen resultaten gevonden.</div>
+        )}
       </div>
     </div>
+  );
+}
+
+// Snel zoeken (autocomplete)
+function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string | number>) => void }) {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any>(null);
+  const [form, setForm] = useState({
+    checkin: getDatePlus(1),
+    checkout: getDatePlus(7),
+    adults: 2,
+    children: 0,
+    rooms: 1,
+  });
+
+  useEffect(() => {
+    if (query.length > 2) {
+      fetchDestinations(query).then(data => setSuggestions(data.results || []));
+    } else {
+      setSuggestions([]);
+    }
+  }, [query]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected) return;
+    onSearch({
+      destination_id: selected.id,
+      checkin: form.checkin,
+      checkout: form.checkout,
+      adults: form.adults,
+      children: form.children,
+      rooms: form.rooms,
+    });
+  }
+
+  return (
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div className="relative">
+        <label className="block mb-1">Bestemming (vrij zoeken)</label>
+        <input
+          className="border p-2 w-full"
+          value={selected ? selected.name : query}
+          onChange={e => {
+            setQuery(e.target.value);
+            setSelected(null);
+          }}
+          placeholder="Typ een bestemming..."
+          autoComplete="off"
+        />
+        {suggestions.length > 0 && !selected && (
+          <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
+            {suggestions.map(s => (
+              <li
+                key={s.id}
+                className="p-2 hover:bg-blue-100 cursor-pointer"
+                onClick={() => {
+                  setSelected(s);
+                  setQuery(s.name);
+                  setSuggestions([]);
+                }}
+              >
+                {s.name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <input
+        className="border p-2 w-full"
+        type="date"
+        name="checkin"
+        value={form.checkin}
+        onChange={e => setForm(f => ({ ...f, checkin: e.target.value }))}
+      />
+      <input
+        className="border p-2 w-full"
+        type="date"
+        name="checkout"
+        value={form.checkout}
+        onChange={e => setForm(f => ({ ...f, checkout: e.target.value }))}
+      />
+      <input
+        className="border p-2 w-full"
+        type="number"
+        name="adults"
+        min={1}
+        value={form.adults}
+        onChange={e => setForm(f => ({ ...f, adults: Number(e.target.value) }))}
+        placeholder="Volwassenen"
+      />
+      <input
+        className="border p-2 w-full"
+        type="number"
+        name="children"
+        min={0}
+        value={form.children}
+        onChange={e => setForm(f => ({ ...f, children: Number(e.target.value) }))}
+        placeholder="Kinderen"
+      />
+      <input
+        className="border p-2 w-full"
+        type="number"
+        name="rooms"
+        min={1}
+        value={form.rooms}
+        onChange={e => setForm(f => ({ ...f, rooms: Number(e.target.value) }))}
+        placeholder="Kamers"
+      />
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4"
+        type="submit"
+        disabled={!selected}
+      >
+        Zoeken
+      </button>
+    </form>
+  );
+}
+
+// Uitgebreid zoeken (dropdowns)
+function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, string | number>) => void }) {
+  const [countries, setCountries] = useState<any[]>([]);
+  const [regions, setRegions] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [country, setCountry] = useState("");
+  const [region, setRegion] = useState("");
+  const [city, setCity] = useState("");
+  const [form, setForm] = useState({
+    checkin: getDatePlus(1),
+    checkout: getDatePlus(7),
+    adults: 2,
+    children: 0,
+    rooms: 1,
+  });
+
+  useEffect(() => {
+    fetchCountries().then(data => setCountries(data.results || []));
+  }, []);
+
+  useEffect(() => {
+    if (country) {
+      fetchRegions(country).then(data => setRegions(data.results || []));
+      setRegion("");
+      setCities([]);
+      setCity("");
+    }
+  }, [country]);
+
+  useEffect(() => {
+    if (region) {
+      fetchCities(region).then(data => setCities(data.results || []));
+      setCity("");
+    }
+  }, [region]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!city) return;
+    onSearch({
+      city_id: city,
+      checkin: form.checkin,
+      checkout: form.checkout,
+      adults: form.adults,
+      children: form.children,
+      rooms: form.rooms,
+    });
+  }
+
+  return (
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div>
+        <label className="block mb-1">Land</label>
+        <select
+          className="border p-2 w-full"
+          value={country}
+          onChange={e => setCountry(e.target.value)}
+        >
+          <option value="">Kies een land</option>
+          {countries.map((c: any) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block mb-1">Regio</label>
+        <select
+          className="border p-2 w-full"
+          value={region}
+          onChange={e => setRegion(e.target.value)}
+          disabled={!country}
+        >
+          <option value="">Kies een regio</option>
+          {regions.map((r: any) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block mb-1">Stad</label>
+        <select
+          className="border p-2 w-full"
+          value={city}
+          onChange={e => setCity(e.target.value)}
+          disabled={!region}
+        >
+          <option value="">Kies een stad</option>
+          {cities.map((s: any) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <input
+        className="border p-2 w-full"
+        type="date"
+        name="checkin"
+        value={form.checkin}
+        onChange={e => setForm(f => ({ ...f, checkin: e.target.value }))}
+      />
+      <input
+        className="border p-2 w-full"
+        type="date"
+        name="checkout"
+        value={form.checkout}
+        onChange={e => setForm(f => ({ ...f, checkout: e.target.value }))}
+      />
+      <input
+        className="border p-2 w-full"
+        type="number"
+        name="adults"
+        min={1}
+        value={form.adults}
+        onChange={e => setForm(f => ({ ...f, adults: Number(e.target.value) }))}
+        placeholder="Volwassenen"
+      />
+      <input
+        className="border p-2 w-full"
+        type="number"
+        name="children"
+        min={0}
+        value={form.children}
+        onChange={e => setForm(f => ({ ...f, children: Number(e.target.value) }))}
+        placeholder="Kinderen"
+      />
+      <input
+        className="border p-2 w-full"
+        type="number"
+        name="rooms"
+        min={1}
+        value={form.rooms}
+        onChange={e => setForm(f => ({ ...f, rooms: Number(e.target.value) }))}
+        placeholder="Kamers"
+      />
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4"
+        type="submit"
+        disabled={!city}
+      >
+        Zoeken
+      </button>
+    </form>
   );
 }

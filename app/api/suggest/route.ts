@@ -18,11 +18,11 @@ export async function GET(req: NextRequest) {
     </soap:Envelope>
   `;
   try {
-    const response = await fetch("http://xml.sunhotels.net/15/SOAP/NonStaticXMLAPI.asmx", {
+    const response = await fetch("http://xml.sunhotels.net/15/NonStaticXMLAPI.asmx", {
       method: "POST",
       headers: {
         "Content-Type": "text/xml; charset=utf-8",
-        "SOAPAction": "http://xml.sunhotels.net/15/GetDestinationsV2"
+        "SOAPAction": '"http://xml.sunhotels.net/15/GetDestinationsV2"'
       },
       body: soapBody
     });
