@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Credentials uit environment variabelen (namen uit jouw .env)
+// Credentials uit environment variabelen
 $db_host = getenv('DB_HOST');
 $db_port = getenv('DB_PORT') ?: 3306;
 $db_name = getenv('DB_DATABASE');
@@ -42,11 +42,13 @@ $dsn = "mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4";
 $api_user = getenv('SUN_HOTEL_USERNAME');
 $api_pass = getenv('SUN_HOTEL_PASSWORD');
 $api_url  = getenv('SUN_HOTEL_URL');
-$secret   = getenv('DB_PASSWORD'); // Tijdelijk, zie opmerking hieronder
 
-// Voor nu gebruik je DB_PASSWORD als API-key in de frontend, maar maak later een aparte API-key aan!
+// *** HIER: API KEY UIT APARTE ENV-VARIABELE ***
+$secret = getenv('FREESTAYS_API_KEY');
 
+// Debug
 error_log('DEBUG: $_GET[key]=' . ($_GET['key'] ?? 'nvt') . ' $secret=' . $secret);
+
 if (!isset($_GET['key']) || $_GET['key'] !== $secret) {
     http_response_code(403);
     echo json_encode(['error' => 'Unauthorized']);
