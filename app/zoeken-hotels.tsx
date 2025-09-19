@@ -155,12 +155,12 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
     e.preventDefault();
     if (!selected) return;
     onSearch({
-      destination_id: selected.destination_id || selected.id,
+      destination_id: selected.destination_id, // <-- DIT MOET HET ZIJN!
       checkin: form.checkin,
       checkout: form.checkout,
       adults: form.adults,
       children: form.children,
-      rooms: form.rooms || 1,
+      rooms: form.rooms,
     });
   }
 
@@ -177,7 +177,7 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
         />
         {suggestions.length > 0 && !selected && (
           <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
-            {suggestions.map(s => (
+            {suggestions.filter(s => s.destination_id && s.destination_id > 0).map(s => (
               <li
                 key={s.id}
                 className="p-2 hover:bg-blue-100 cursor-pointer"

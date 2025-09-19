@@ -356,15 +356,25 @@ if ($action === 'quicksearch') {
     exit;
 } elseif ($action === 'destinations' && isset($_GET['query'])) {
     $query = '%' . strtolower($_GET['query']) . '%';
-    $stmt = $pdo->prepare("SELECT DISTINCT city AS id, city AS name, destination_id FROM bravo_hotels WHERE LOWER(city) LIKE ? AND city IS NOT NULL AND city != '' ORDER BY city LIMIT 20");
+    $stmt = $pdo->prepare("
+        SELECT DISTINCT 
+            h.city AS id, 
+            h.city AS name, 
+            COALESCE(d.destination_id, 0) AS destination_id
+        FROM bravo_hotels h
+        LEFT JOIN bravo_locations l ON h.location_id = l.id
+        LEFT JOIN bravo_destinations d ON l.destination_id = d.destination_id
+        WHERE 
+            LOWER(h.city) LIKE ?
+            AND h.city IS NOT NULL AND h.city != ''
+        ORDER BY h.city
+        LIMIT 20
+    ");
     $stmt->execute([$query]);
     $results = $stmt->fetchAll();
 
-    // Zorg dat destination_id altijd als integer wordt meegegeven (voor frontend/quicksearch)
     foreach ($results as &$row) {
-        if (isset($row['destination_id'])) {
-            $row['destination_id'] = (int)$row['destination_id'];
-        }
+        $row['destination_id'] = (int)$row['destination_id'];
     }
     echo json_encode(['results' => $results]);
     exit;
