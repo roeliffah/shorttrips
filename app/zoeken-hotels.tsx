@@ -132,29 +132,28 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
   });
 
   useEffect(() => {
-    if (query.length > 2) {
+    // Alleen zoeken als er geen selectie is gemaakt
+    if (query.length > 2 && !selected) {
       fetchDestinations(query).then(data => setSuggestions(data.results || []));
     } else {
       setSuggestions([]);
     }
-  }, [query]);
+  }, [query, selected]);
 
-  // Herstel: als gebruiker typt, suggestions tonen, als suggestie gekozen, alleen die tonen
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     setQuery(e.target.value);
-    setSelected(null);
+    setSelected(null); // reset selectie als je typt
   }
 
   function handleSuggestionClick(s: any) {
     setSelected(s);
-    setQuery(s.name);
-    setSuggestions([]);
+    setQuery(s.name); // zet alleen de naam in de input
+    setSuggestions([]); // suggestions sluiten
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selected) return;
-    // Gebruik destination_id als die bestaat, anders id
     onSearch({
       destination_id: selected.destination_id || selected.id,
       checkin: form.checkin,
@@ -171,12 +170,11 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
         <label className="block mb-1">Bestemming (vrij zoeken)</label>
         <input
           className="border p-2 w-full"
-          value={selected ? selected.name : query}
+          value={query}
           onChange={handleInputChange}
           placeholder="Typ een bestemming..."
           autoComplete="off"
         />
-        {/* Suggesties tonen als er suggesties zijn en geen selectie is gemaakt */}
         {suggestions.length > 0 && !selected && (
           <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
             {suggestions.map(s => (
