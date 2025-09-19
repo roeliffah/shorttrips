@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 
-// Zet hier je echte API-key!
 const API_KEY = "hlIGzfFEk5Af0dWNZO4p";
-const API_BASE = "https://freestays.eu/api.php"; // <-- aangepast naar api.php
+const API_BASE = "https://freestays.eu/api.php";
 
 // Helpers voor API-calls
 async function fetchCountries() {
@@ -42,6 +41,7 @@ export default function ZoekenHotels() {
   async function handleSearch(params: Record<string, string | number>) {
     setLoading(true);
     setResults([]);
+    // Bouw de juiste parameters voor de backend
     const query = new URLSearchParams({
       action: "quicksearch",
       key: API_KEY,
@@ -106,7 +106,6 @@ export default function ZoekenHotels() {
                       {hotel.price_total} {hotel.currency}
                     </div>
                   )}
-                  {/* Hier kun je later een link naar de detailpagina toevoegen */}
                 </div>
               </div>
             ))}
@@ -144,6 +143,7 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selected) return;
+    // De backend verwacht destination_id (stad) of resort_id (regio) of country
     onSearch({
       destination_id: selected.id,
       checkin: form.checkin,
@@ -277,7 +277,7 @@ function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!country || !region) return;
-    // Zoekopdracht: stuur altijd country en resort_id, city_id alleen als gekozen
+    // Stuur altijd country en resort_id, city_id alleen als gekozen
     const params: Record<string, string | number> = {
       country,
       resort_id: region,
