@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 
 // Zet hier je echte API-key!
 const API_KEY = "hlIGzfFEk5Af0dWNZO4p";
-const API_BASE = "https://freestays.eu/test_freestays_api.php";
+const API_BASE = "https://freestays.eu/api.php"; // <-- aangepast naar api.php
 
 // Helpers voor API-calls
 async function fetchCountries() {
