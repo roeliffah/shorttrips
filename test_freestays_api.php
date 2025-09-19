@@ -1,11 +1,12 @@
 <?php
 
 header('Content-Type: application/json');
-// Alleen frontend domein toestaan ivm CORS
+
+// CORS headers
 if (isset($_SERVER['HTTP_ORIGIN'])) {
     $allowed_origins = [
         'https://shorttrips.eu',
- 		'https://www.shorttrips.eu',
+        'https://www.shorttrips.eu',
         'http://localhost:3000',
         'http://localhost:5173',
         'http://127.0.0.1:3000',
@@ -21,7 +22,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
-$secret = 'hlIGzfFEk5Af0dWNZO4p';
+
+// Credentials uit environment variabelen (namen uit jouw .env)
+$db_host = getenv('DB_HOST');
+$db_port = getenv('DB_PORT') ?: 3306;
+$db_name = getenv('DB_DATABASE');
+$db_user = getenv('DB_USERNAME');
+$db_pass = getenv('DB_PASSWORD');
+$dsn = "mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4";
+
+$api_user = getenv('SUN_HOTEL_USERNAME');
+$api_pass = getenv('SUN_HOTEL_PASSWORD');
+$api_url  = getenv('SUN_HOTEL_URL');
+$secret   = getenv('DB_PASSWORD'); // Tijdelijk, zie opmerking hieronder
+
+// Voor nu gebruik je DB_PASSWORD als API-key in de frontend, maar maak later een aparte API-key aan!
+
 if (!isset($_GET['key']) || $_GET['key'] !== $secret) {
     http_response_code(403);
     echo json_encode(['error' => 'Unauthorized']);
@@ -29,9 +45,6 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secret) {
 }
 
 // === DATABASE CONNECTIE ===
-$dsn = 'mysql:host=localhost;dbname=freestays;charset=utf8mb4'; // Pas aan naar jouw settings
-$db_user = 'fs-admin';
-$db_pass = 'Barneveld2025!@';
 try {
     $pdo = new PDO($dsn, $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -43,8 +56,8 @@ try {
     exit;
 }
 
-// DB connectie tijdelijk uitgeschakeld
-$api_user = "FreestaysTEST"; // Username aangepast
+// Sunhotels API settings
+$api_user = "FreestaysTEST";
 $api_pass = "Vision2024!@";
 $api_url  = "https://xml.sunhotels.net/15/PostGet/NonStaticXMLAPI.asmx";
 
@@ -84,7 +97,6 @@ function merge_hotel_data($dynamic, $static) {
     foreach ($dynamic as &$hotel) {
         $id = $hotel['hotel_id'];
         if (isset($static[$id])) {
-            // Voeg statische data toe, maar overschrijf geen dynamische velden
             foreach ($static[$id] as $k => $v) {
                 if (!isset($hotel[$k]) || empty($hotel[$k])) {
                     $hotel[$k] = $v;
@@ -94,46 +106,29 @@ function merge_hotel_data($dynamic, $static) {
     }
     return $dynamic;
 }
-function sunhotels_search($destinationId, $checkin, $checkout, $adults = 2, $children = 0) {
-    global $api_user, $api_pass, $api_url;
-    // Extra filters ophalen uit $_GET
-    $rooms = isset($_GET['rooms']) ? intval($_GET['rooms']) : 1;
-    $sortBy = isset($_GET['sortBy']) ? htmlspecialchars($_GET['sortBy']) : '';
-    $minPrice = isset($_GET['minPrice']) ? floatval($_GET['minPrice']) : '';
-    $maxPrice = isset($_GET['maxPrice']) ? floatval($_GET['maxPrice']) : '';
-    $minStar = isset($_GET['minStarRating']) ? intval($_GET['minStarRating']) : '';
-    $maxStar = isset($_GET['maxStarRating']) ? intval($_GET['maxStarRating']) : '';
-    $starRating = isset($_GET['starRating']) ? $_GET['starRating'] : '';
-    $accommodationTypes = isset($_GET['accommodationTypes']) ? htmlspecialchars($_GET['accommodationTypes']) : '';
-    $featureIds = isset($_GET['featureIds']) ? htmlspecialchars($_GET['featureIds']) : '';
-    $themeIds = isset($_GET['themeIds']) ? htmlspecialchars($_GET['themeIds']) : '';
-    $mealIds = isset($_GET['mealIds']) ? htmlspecialchars($_GET['mealIds']) : '';
-    $showCoordinates = isset($_GET['showCoordinates']) ? htmlspecialchars($_GET['showCoordinates']) : '';
-    $showReviews = isset($_GET['showReviews']) ? htmlspecialchars($_GET['showReviews']) : '';
-    $sortOrder = isset($_GET['sortOrder']) ? htmlspecialchars($_GET['sortOrder']) : '';
-    $childrenAges = isset($_GET['childrenAges']) ? htmlspecialchars($_GET['childrenAges']) : '';
-    $infant = isset($_GET['infant']) ? intval($_GET['infant']) : '';
-    $blockSuperdeal = isset($_GET['blockSuperdeal']) ? htmlspecialchars($_GET['blockSuperdeal']) : 'ja';
-    $exactDestinationMatch = isset($_GET['exactDestinationMatch']) ? htmlspecialchars($_GET['exactDestinationMatch']) : '';
-    $hotelIDs = isset($_GET['hotelIDs']) ? htmlspecialchars($_GET['hotelIDs']) : '';
-    $resortIDs = isset($_GET['resortIDs']) ? htmlspecialchars($_GET['resortIDs']) : '';
-    $prioritizedHotelIds = isset($_GET['prioritizedHotelIds']) ? htmlspecialchars($_GET['prioritizedHotelIds']) : '';
-    $paymentMethodId = isset($_GET['paymentMethodId']) ? htmlspecialchars($_GET['paymentMethodId']) : '';
-    $customerCountry = isset($_GET['customerCountry']) ? htmlspecialchars($_GET['customerCountry']) : '';
-    $b2c = isset($_GET['b2c']) ? htmlspecialchars($_GET['b2c']) : '';
-    $showRoomTypeName = isset($_GET['showRoomTypeName']) ? htmlspecialchars($_GET['showRoomTypeName']) : '';
-    $referencePointLatitude = isset($_GET['referencePointLatitude']) ? htmlspecialchars($_GET['referencePointLatitude']) : '';
-    $referencePointLongitude = isset($_GET['referencePointLongitude']) ? htmlspecialchars($_GET['referencePointLongitude']) : '';
-    $maxDistanceFromReferencePoint = isset($_GET['maxDistanceFromReferencePoint']) ? htmlspecialchars($_GET['maxDistanceFromReferencePoint']) : '';
 
-    // destinationName optioneel meesturen als bekend
-    $destinationName = isset($_GET['destination']) ? htmlspecialchars($_GET['destination']) : '';
+// Sunhotels SOAP-call functie
+function sunhotels_search_v3($params) {
+    global $api_user, $api_pass, $api_url;
+
+    $checkin = $params['checkin'];
+    $checkout = $params['checkout'];
+    $adults = $params['adults'] ?? 2;
+    $children = $params['children'] ?? 0;
+    $rooms = $params['rooms'] ?? 1;
+
+    // Bepaal of we zoeken op hotel_id of destination_id
+    $hotel_id = $params['hotel_id'] ?? null;
+    $destination_id = $params['destination_id'] ?? null;
+
+    // Bouw de juiste XML
     $destinationBlock = '';
-    if (strlen($destinationId)) {
-        $destinationBlock = '<destinationID>' . intval($destinationId) . '</destinationID>';
-    } elseif (strlen($destinationName)) {
-        $destinationBlock = '<destination>' . $destinationName . '</destination>';
+    if ($hotel_id) {
+        $destinationBlock = '<hotelIDs>' . htmlspecialchars($hotel_id) . '</hotelIDs>';
+    } elseif ($destination_id) {
+        $destinationBlock = '<destinationID>' . intval($destination_id) . '</destinationID>';
     }
+
     $body = '<SearchV3 xmlns="http://xml.sunhotels.net/15/">' .
         '<userName>' . htmlspecialchars($api_user) . '</userName>' .
         '<password>' . htmlspecialchars($api_pass) . '</password>' .
@@ -144,38 +139,17 @@ function sunhotels_search($destinationId, $checkin, $checkout, $adults = 2, $chi
             '<checkOutDate>' . $checkout . '</checkOutDate>' .
             '<numberOfRooms>' . intval($rooms) . '</numberOfRooms>' .
             $destinationBlock .
-            (strlen($hotelIDs) ? '<hotelIDs>' . $hotelIDs . '</hotelIDs>' : '') .
-            (strlen($resortIDs) ? '<resortIDs>' . $resortIDs . '</resortIDs>' : '') .
-            (strlen($accommodationTypes) ? '<accommodationTypes>' . $accommodationTypes . '</accommodationTypes>' : '') .
-            (strlen($themeIds) ? '<themeIds>' . $themeIds . '</themeIds>' : '') .
-            (strlen($featureIds) ? '<featureIds>' . $featureIds . '</featureIds>' : '') .
-            (strlen($mealIds) ? '<mealIds>' . $mealIds . '</mealIds>' : '') .
-            (strlen($minPrice) ? '<minPrice>' . $minPrice . '</minPrice>' : '') .
-            (strlen($maxPrice) ? '<maxPrice>' . $maxPrice . '</maxPrice>' : '') .
-            (strlen($minStar) ? '<minStarRating>' . $minStar . '</minStarRating>' : '') .
-            (strlen($maxStar) ? '<maxStarRating>' . $maxStar . '</maxStarRating>' : '') .
-            (strlen($sortBy) ? '<sortBy>' . $sortBy . '</sortBy>' : '') .
-            (strlen($sortOrder) ? '<sortOrder>' . $sortOrder . '</sortOrder>' : '') .
-            (strlen($blockSuperdeal) ? '<blockSuperdeal>' . $blockSuperdeal . '</blockSuperdeal>' : '') .
-            (strlen($exactDestinationMatch) ? '<exactDestinationMatch>' . $exactDestinationMatch . '</exactDestinationMatch>' : '') .
-            (strlen($showCoordinates) ? '<showCoordinates>' . $showCoordinates . '</showCoordinates>' : '') .
-            (strlen($showReviews) ? '<showReviews>' . $showReviews . '</showReviews>' : '') .
-            (strlen($referencePointLatitude) ? '<referencePointLatitude>' . $referencePointLatitude . '</referencePointLatitude>' : '') .
-            (strlen($referencePointLongitude) ? '<referencePointLongitude>' . $referencePointLongitude . '</referencePointLongitude>' : '') .
-            (strlen($maxDistanceFromReferencePoint) ? '<maxDistanceFromReferencePoint>' . $maxDistanceFromReferencePoint . '</maxDistanceFromReferencePoint>' : '') .
-            (strlen($prioritizedHotelIds) ? '<prioritizedHotelIds>' . $prioritizedHotelIds . '</prioritizedHotelIds>' : '') .
-            (strlen($paymentMethodId) ? '<paymentMethodId>' . $paymentMethodId . '</paymentMethodId>' : '') .
-            (strlen($customerCountry) ? '<customerCountry>' . $customerCountry . '</customerCountry>' : '') .
-            (strlen($b2c) ? '<b2c>' . $b2c . '</b2c>' : '') .
-            (strlen($showRoomTypeName) ? '<showRoomTypeName>' . $showRoomTypeName . '</showRoomTypeName>' : '') .
+            '<blockSuperdeal>ja</blockSuperdeal>' .
             '<paxRooms>' .
-                str_repeat('<paxRoom><numberOfAdults>' . intval($adults) . '</numberOfAdults><numberOfChildren>' . intval($children) . '</numberOfChildren>' . (strlen($childrenAges) ? '<childrenAges>' . $childrenAges . '</childrenAges>' : '') . (strlen($infant) ? '<infant>' . $infant . '</infant>' : '') . '</paxRoom>', $rooms) .
+                str_repeat('<paxRoom><numberOfAdults>' . intval($adults) . '</numberOfAdults><numberOfChildren>' . intval($children) . '</numberOfChildren></paxRoom>', $rooms) .
             '</paxRooms>' .
         '</searchV3Request>' .
     '</SearchV3>';
+
     $xml = '<?xml version="1.0" encoding="utf-8"?>' .
         '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' .
         '<soap:Body>' . $body . '</soap:Body></soap:Envelope>';
+
     $ch = curl_init($api_url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -200,6 +174,8 @@ function sunhotels_search($destinationId, $checkin, $checkout, $adults = 2, $chi
         ];
     }
     curl_close($ch);
+
+    // Parse XML response
     libxml_use_internal_errors(true);
     $parsed = simplexml_load_string($response);
     if (!$parsed) {
@@ -212,7 +188,6 @@ function sunhotels_search($destinationId, $checkin, $checkout, $adults = 2, $chi
         ];
     }
     $parsed->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-    $rooms = $parsed->xpath('//room');
     $hotels = $parsed->xpath('//hotel');
     $hotelResults = [];
     if ($hotels && count($hotels) > 0) {
@@ -248,21 +223,23 @@ function sunhotels_search($destinationId, $checkin, $checkout, $adults = 2, $chi
     }
 }
 
-
-
+// === API actions ===
 $action = $_GET['action'] ?? '';
 if ($action === 'quicksearch') {
     $checkin     = $_GET['checkin'] ?? date('Y-m-d');
     $checkout    = $_GET['checkout'] ?? date('Y-m-d', strtotime('+6 days'));
     $adults      = $_GET['adults'] ?? 2;
     $children    = $_GET['children'] ?? 0;
+    $rooms       = $_GET['rooms'] ?? 1;
     $destination = $_GET['destination'] ?? null;
     $destinationId = $_GET['destination_id'] ?? $_GET['city_id'] ?? null;
+    $hotel_id    = $_GET['hotel_id'] ?? null;
 
     // Debug info
     $debug = [
         'input_destination' => $destination,
         'input_destination_id' => $destinationId,
+        'input_hotel_id' => $hotel_id,
         'mapping_used' => false,
         'mapping_result' => null,
         'error' => null,
@@ -283,9 +260,9 @@ if ($action === 'quicksearch') {
     // 2. Laad statische data alvast
     $static_hotels = load_static_hotels();
 
-    // Geen destination_id? Geen zoekopdracht uitvoeren!
-    if (!$destinationId || strtolower($destination) === 'popular destinations') {
-        $debug['error'] = 'No valid destination_id provided, skipping Sunhotels search.';
+    // Geen hotel_id en geen destination_id? Geen zoekopdracht uitvoeren!
+    if (!$hotel_id && (!$destinationId || strtolower($destination) === 'popular destinations')) {
+        $debug['error'] = 'No valid hotel_id or destination_id provided, skipping Sunhotels search.';
         echo json_encode([
             'results' => [],
             'debug' => $debug
@@ -294,7 +271,16 @@ if ($action === 'quicksearch') {
     }
 
     // 3. Dynamische zoekopdracht
-    $sunhotels = sunhotels_search($destinationId, $checkin, $checkout, $adults, $children);
+    $params = [
+        'checkin' => $checkin,
+        'checkout' => $checkout,
+        'adults' => $adults,
+        'children' => $children,
+        'rooms' => $rooms,
+        'destination_id' => $destinationId,
+        'hotel_id' => $hotel_id
+    ];
+    $sunhotels = sunhotels_search_v3($params);
     $debug['sunhotels_call_executed'] = true;
     $debug['sunhotels_request_body'] = isset($sunhotels['debug_request_body']) ? $sunhotels['debug_request_body'] : null;
     $debug['sunhotels_response_length'] = $sunhotels['sunhotels_raw_response_length'] ?? null;
@@ -307,7 +293,7 @@ if ($action === 'quicksearch') {
     }
 
     // 5. Fallback: als geen dynamische resultaten, toon statische hotels voor deze bestemming
-    if (empty($results)) {
+    if (empty($results) && $destinationId) {
         foreach ($static_hotels as $hotel) {
             if (isset($hotel['destination_id']) && $hotel['destination_id'] == $destinationId) {
                 $results[] = $hotel;
@@ -316,6 +302,7 @@ if ($action === 'quicksearch') {
     }
 
     $debug['final_destination_id'] = $destinationId;
+    $debug['final_hotel_id'] = $hotel_id;
     $debug['results_count'] = count($results);
 
     echo json_encode([
@@ -328,13 +315,11 @@ if ($action === 'quicksearch') {
     ]);
     exit;
 } elseif ($action === 'countries') {
-    // Haal landen uit bravo_locations (alleen type 'country')
     $stmt = $pdo->query("SELECT id, name FROM bravo_locations WHERE location_type = 'country' ORDER BY name");
     $countries = $stmt->fetchAll();
     echo json_encode(['results' => $countries]);
     exit;
 } elseif ($action === 'regions' && isset($_GET['country_id'])) {
-    // Haal regio's uit bravo_destinations op basis van country_id
     $country_id = $_GET['country_id'];
     $stmt = $pdo->prepare("SELECT id, name FROM bravo_destinations WHERE country_id = ? ORDER BY name");
     $stmt->execute([$country_id]);
@@ -342,7 +327,6 @@ if ($action === 'quicksearch') {
     echo json_encode(['results' => $regions]);
     exit;
 } elseif ($action === 'cities' && isset($_GET['region_id'])) {
-    // Haal unieke steden uit bravo_hotels op basis van destination_id (region_id)
     $region_id = $_GET['region_id'];
     $stmt = $pdo->prepare("SELECT DISTINCT city AS id, city AS name FROM bravo_hotels WHERE destination_id = ? AND city IS NOT NULL AND city != '' ORDER BY city");
     $stmt->execute([$region_id]);
@@ -350,7 +334,6 @@ if ($action === 'quicksearch') {
     echo json_encode(['results' => $cities]);
     exit;
 } elseif ($action === 'destinations' && isset($_GET['query'])) {
-    // Autocomplete steden uit bravo_hotels (distinct)
     $query = '%' . strtolower($_GET['query']) . '%';
     $stmt = $pdo->prepare("SELECT DISTINCT city AS id, city AS name FROM bravo_hotels WHERE LOWER(city) LIKE ? AND city IS NOT NULL AND city != '' ORDER BY city LIMIT 20");
     $stmt->execute([$query]);
