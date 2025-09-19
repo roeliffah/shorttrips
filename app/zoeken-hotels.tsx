@@ -3,14 +3,9 @@ import { useState, useEffect } from "react";
 
 // Zet hier je echte API-key!
 const API_KEY = "hlIGzfFEk5Af0dWNZO4p";
-const API_BASE = "https://freestays.eu/api.php";
+const API_BASE = "https://freestays.eu/test_freestays_api.php";
 
 // Helpers voor API-calls
-async function fetchDestinations(query: string) {
-  const url = `${API_BASE}?action=destinations&key=${API_KEY}&query=${encodeURIComponent(query)}`;
-  const res = await fetch(url);
-  return res.json();
-}
 async function fetchCountries() {
   const url = `${API_BASE}?action=countries&key=${API_KEY}`;
   const res = await fetch(url);
@@ -26,8 +21,13 @@ async function fetchCities(regionId: string) {
   const res = await fetch(url);
   return res.json();
 }
+async function fetchDestinations(query: string) {
+  const url = `${API_BASE}?action=destinations&key=${API_KEY}&query=${encodeURIComponent(query)}`;
+  const res = await fetch(url);
+  return res.json();
+}
 
-// Hulpfunctie voor datumformat YYYY-MM-DD
+// Datum helper
 function getDatePlus(days: number) {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -39,11 +39,9 @@ export default function ZoekenHotels() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Callback voor beide zoekformulieren
   async function handleSearch(params: Record<string, string | number>) {
     setLoading(true);
     setResults([]);
-    // Bouw de querystring op basis van de gekozen zoekmethode
     const query = new URLSearchParams({
       action: "quicksearch",
       key: API_KEY,
@@ -278,15 +276,19 @@ function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!city) return;
-    onSearch({
-      city_id: city,
+    if (!country || !region) return;
+    // Zoekopdracht: stuur altijd country en resort_id, city_id alleen als gekozen
+    const params: Record<string, string | number> = {
+      country,
+      resort_id: region,
       checkin: form.checkin,
       checkout: form.checkout,
       adults: form.adults,
       children: form.children,
       rooms: form.rooms,
-    });
+    };
+    if (city) params.city_id = city;
+    onSearch(params);
   }
 
   return (
@@ -306,38 +308,40 @@ function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, 
           ))}
         </select>
       </div>
-      <div>
-        <label className="block mb-1">Regio</label>
-        <select
-          className="border p-2 w-full"
-          value={region}
-          onChange={e => setRegion(e.target.value)}
-          disabled={!country}
-        >
-          <option value="">Kies een regio</option>
-          {regions.map((r: any) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block mb-1">Stad</label>
-        <select
-          className="border p-2 w-full"
-          value={city}
-          onChange={e => setCity(e.target.value)}
-          disabled={!region}
-        >
-          <option value="">Kies een stad</option>
-          {cities.map((s: any) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {country && (
+        <div>
+          <label className="block mb-1">Regio</label>
+          <select
+            className="border p-2 w-full"
+            value={region}
+            onChange={e => setRegion(e.target.value)}
+          >
+            <option value="">Kies een regio</option>
+            {regions.map((r: any) => (
+              <option key={r.resort_id || r.id} value={r.resort_id || r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {region && (
+        <div>
+          <label className="block mb-1">Stad (optioneel)</label>
+          <select
+            className="border p-2 w-full"
+            value={city}
+            onChange={e => setCity(e.target.value)}
+          >
+            <option value="">Kies een stad (optioneel)</option>
+            {cities.map((s: any) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <input
         className="border p-2 w-full"
         type="date"
@@ -382,7 +386,7 @@ function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, 
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded w-full mt-4"
         type="submit"
-        disabled={!city}
+        disabled={!country || !region}
       >
         Zoeken
       </button>
