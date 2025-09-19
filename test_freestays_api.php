@@ -107,7 +107,7 @@ function merge_hotel_data($dynamic, $static) {
     return $dynamic;
 }
 
-// Sunhotels SOAP-call functie
+// Sunhotels SOAP-call functie met robuuste XML parsing
 function sunhotels_search_v3($params) {
     global $api_user, $api_pass, $api_url;
 
@@ -175,7 +175,7 @@ function sunhotels_search_v3($params) {
     }
     curl_close($ch);
 
-    // Parse XML response
+    // Robuuste XML parsing: vind alle hotel-elementen, ongeacht namespace/diepte
     libxml_use_internal_errors(true);
     $parsed = simplexml_load_string($response);
     if (!$parsed) {
@@ -187,24 +187,45 @@ function sunhotels_search_v3($params) {
             'debug_request_body' => str_replace($api_pass, '***', $body),
         ];
     }
-    $parsed->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-    $hotels = $parsed->xpath('//hotel');
-    $hotelResults = [];
-    if ($hotels && count($hotels) > 0) {
-        foreach ($hotels as $hotel) {
-            $hotelResults[] = [
-                'hotel_id' => (string) $hotel->attributes()->id,
-                'name' => (string) $hotel->name,
-                'city' => (string) $hotel->city,
-                'country' => (string) $hotel->country,
-                'star_rating' => (string) $hotel->starRating,
-                'address' => (string) $hotel->address,
-                'image_url' => (string) $hotel->mainImage,
-                'availability' => true,
-                'price_total' => isset($hotel->rooms->room->price->total) ? (string) $hotel->rooms->room->price->total : null,
-                'currency' => isset($hotel->rooms->room->price->currency) ? (string) $hotel->rooms->room->price->currency : null,
-            ];
+
+    // Zoek naar hotel-elementen via json_decode (werkt altijd, ook bij 1 hotel)
+    $parsedArr = json_decode(json_encode($parsed), true);
+    $hotels = [];
+    // Zoek recursief naar alle hotel-elementen
+    $findHotels = function($arr) use (&$findHotels, &$hotels) {
+        if (is_array($arr)) {
+            foreach ($arr as $k => $v) {
+                if ($k === 'hotel') {
+                    if (isset($v[0])) {
+                        foreach ($v as $h) $hotels[] = $h;
+                    } else {
+                        $hotels[] = $v;
+                    }
+                } elseif (is_array($v)) {
+                    $findHotels($v);
+                }
+            }
         }
+    };
+    $findHotels($parsedArr);
+
+    $hotelResults = [];
+    foreach ($hotels as $hotel) {
+        $hotelResults[] = [
+            'hotel_id' => $hotel['@attributes']['id'] ?? '',
+            'name' => $hotel['name'] ?? '',
+            'city' => $hotel['city'] ?? '',
+            'country' => $hotel['country'] ?? '',
+            'star_rating' => $hotel['starRating'] ?? '',
+            'address' => $hotel['address'] ?? '',
+            'image_url' => $hotel['mainImage'] ?? '',
+            'availability' => true,
+            'price_total' => isset($hotel['rooms']['room']['price']['total']) ? $hotel['rooms']['room']['price']['total'] : null,
+            'currency' => isset($hotel['rooms']['room']['price']['currency']) ? $hotel['rooms']['room']['price']['currency'] : null,
+        ];
+    }
+
+    if (count($hotelResults) > 0) {
         return [
             'availability' => true,
             'hotels' => $hotelResults,
@@ -335,9 +356,16 @@ if ($action === 'quicksearch') {
     exit;
 } elseif ($action === 'destinations' && isset($_GET['query'])) {
     $query = '%' . strtolower($_GET['query']) . '%';
-    $stmt = $pdo->prepare("SELECT DISTINCT city AS id, city AS name FROM bravo_hotels WHERE LOWER(city) LIKE ? AND city IS NOT NULL AND city != '' ORDER BY city LIMIT 20");
+    $stmt = $pdo->prepare("SELECT DISTINCT city AS id, city AS name, destination_id FROM bravo_hotels WHERE LOWER(city) LIKE ? AND city IS NOT NULL AND city != '' ORDER BY city LIMIT 20");
     $stmt->execute([$query]);
     $results = $stmt->fetchAll();
+
+    // Zorg dat destination_id altijd als integer wordt meegegeven (voor frontend/quicksearch)
+    foreach ($results as &$row) {
+        if (isset($row['destination_id'])) {
+            $row['destination_id'] = (int)$row['destination_id'];
+        }
+    }
     echo json_encode(['results' => $results]);
     exit;
 }

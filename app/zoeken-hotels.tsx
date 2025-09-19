@@ -139,10 +139,22 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
     }
   }, [query]);
 
+  // Herstel: als gebruiker typt, suggestions tonen, als suggestie gekozen, alleen die tonen
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuery(e.target.value);
+    setSelected(null);
+  }
+
+  function handleSuggestionClick(s: any) {
+    setSelected(s);
+    setQuery(s.name);
+    setSuggestions([]);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selected) return;
-    // Gebruik destination_id als die bestaat, anders id (voor Sunhotels werkt destination_id!)
+    // Gebruik destination_id als die bestaat, anders id
     onSearch({
       destination_id: selected.destination_id || selected.id,
       checkin: form.checkin,
@@ -160,24 +172,18 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
         <input
           className="border p-2 w-full"
           value={selected ? selected.name : query}
-          onChange={e => {
-            setQuery(e.target.value);
-            setSelected(null);
-          }}
+          onChange={handleInputChange}
           placeholder="Typ een bestemming..."
           autoComplete="off"
         />
+        {/* Suggesties tonen als er suggesties zijn en geen selectie is gemaakt */}
         {suggestions.length > 0 && !selected && (
           <ul className="border bg-white absolute z-10 w-full max-h-48 overflow-auto">
             {suggestions.map(s => (
               <li
                 key={s.id}
                 className="p-2 hover:bg-blue-100 cursor-pointer"
-                onClick={() => {
-                  setSelected(s);
-                  setQuery(s.name);
-                  setSuggestions([]);
-                }}
+                onClick={() => handleSuggestionClick(s)}
               >
                 {s.name}
               </li>
