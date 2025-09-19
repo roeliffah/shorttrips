@@ -148,7 +148,7 @@ function SnelZoekenForm({ onSearch }: { onSearch: (params: Record<string, string
       checkout: form.checkout,
       adults: form.adults,
       children: form.children,
-      rooms: form.rooms,
+      rooms: form.rooms || 1, // <-- altijd minimaal 1 kamer
     });
   }
 
@@ -275,16 +275,15 @@ function UitgebreidZoekenForm({ onSearch }: { onSearch: (params: Record<string, 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!country || !region) return;
-    // Stuur altijd destination_id (resort_id), city_id alleen als gekozen
     const params: Record<string, string | number> = {
       country,
       resort_id: region,
-      destination_id: region, // resort_id als destination_id meesturen!
+      destination_id: region,
       checkin: form.checkin,
       checkout: form.checkout,
       adults: form.adults,
       children: form.children,
-      rooms: form.rooms,
+      rooms: form.rooms || 1, // <-- altijd minimaal 1 kamer
     };
     if (city) params.city_id = city;
     onSearch(params);
