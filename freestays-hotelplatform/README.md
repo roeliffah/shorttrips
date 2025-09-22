@@ -61,10 +61,32 @@ freestays-hotelplatform
 
 1. **Clone the Repository**: Clone this repository to your local machine.
 2. **Set Up WordPress**: Ensure you have a working WordPress installation.
-3. **Install the Plugin**: Copy the `freestays-booking` folder into the `wp-content/plugins` directory of your WordPress installation.
-4. **Activate the Plugin**: Go to the WordPress admin area, navigate to Plugins, and activate the Freestays Booking plugin.
-5. **Configure Settings**: Access the plugin settings to configure API credentials and other options.
-6. **Use Shortcodes**: Utilize the provided shortcodes to display hotel search forms and booking options on your pages.
+3. **Configure Environment**: Copy the `config/sample.env` file to `.env` and configure the required variables:
+   - Database settings (DB_HOST, DB_NAME, DB_USER, DB_PASS)
+   - API credentials (API_URL, API_USER, API_PASS)
+4. **Install the Plugin**: Copy the `freestays-booking` folder into the `wp-content/plugins` directory of your WordPress installation.
+5. **Install the Theme**: Copy the `freestays-theme` folder into the `wp-content/themes` directory of your WordPress installation.
+6. **Activate the Plugin**: Go to the WordPress admin area, navigate to Plugins, and activate the Freestays Booking plugin.
+7. **Activate the Theme**: Go to Appearance > Themes and activate the Freestays theme.
+8. **Configure Settings**: Access the plugin settings to configure API credentials and other options.
+9. **Validate Installation**: Run the installation validator: `php installation-validator.php`
+10. **Use Shortcodes**: Utilize the provided shortcodes to display hotel search forms and booking options on your pages.
+
+### Installation Validation
+
+A comprehensive installation validator is included to check all components:
+
+```bash
+cd freestays-hotelplatform
+php installation-validator.php
+```
+
+This will check:
+- Directory structure
+- Required files
+- PHP syntax
+- WordPress compatibility
+- Environment configuration
 
 ## Contributing
 

@@ -1,5 +1,4 @@
 <?php
-<?php
 class Freestays_Toaster {
     public function __construct() {
         add_shortcode('freestays_toaster', array($this, 'render_toaster'));

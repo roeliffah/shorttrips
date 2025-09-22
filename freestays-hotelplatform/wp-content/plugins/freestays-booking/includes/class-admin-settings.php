@@ -1,6 +1,6 @@
 <?php
 
-class Freestays_Admin_Settings {
+class Admin_Settings {
     private $options;
 
     public function __construct() {

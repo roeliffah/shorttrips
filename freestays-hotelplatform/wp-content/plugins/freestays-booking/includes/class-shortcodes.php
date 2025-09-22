@@ -1,6 +1,6 @@
 <?php
 
-class Freestays_Booking_Shortcodes {
+class Shortcodes {
 
     public function __construct() {
         add_shortcode('freestays_search_form', [$this, 'render_search_form']);
@@ -27,4 +27,4 @@ class Freestays_Booking_Shortcodes {
     }
 }
 
-new Freestays_Booking_Shortcodes();
+// Class will be instantiated by main plugin file
