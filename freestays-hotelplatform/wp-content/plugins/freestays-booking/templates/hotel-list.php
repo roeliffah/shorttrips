@@ -14,11 +14,7 @@ if (!defined('ABSPATH')) {
         <ul>
             <?php foreach ($hotels as $hotel): ?>
                 <li class="hotel-item">
-                    <h3><?php echo esc_html($hotel['name']); ?></h3>
-                    <p><?php echo esc_html($hotel['city']); ?>, <?php echo esc_html($hotel['country']); ?></p>
-                    <p>Star Rating: <?php echo esc_html($hotel['star_rating']); ?></p>
-                    <p>Price: <?php echo esc_html($hotel['price_total']); ?> <?php echo esc_html($hotel['currency']); ?></p>
-                    <a href="<?php echo esc_url(get_permalink($hotel['hotel_id'])); ?>" class="button">View Details</a>
+                    <?php include FREESTAYS_PLUGIN_DIR . 'templates/hotel-card.php'; ?>
                 </li>
             <?php endforeach; ?>
         </ul>

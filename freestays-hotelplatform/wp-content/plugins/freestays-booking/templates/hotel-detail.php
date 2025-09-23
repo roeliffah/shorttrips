@@ -44,6 +44,21 @@ if ( ! $hotel_details ) {
             <input type="submit" value="Boek">
         </form>
     </div>
+    <div class="related-hotels">
+        <h2>Gerelateerde Hotels</h2>
+        <?php
+        // Verkrijg gerelateerde hotels (placeholder)
+        $related_hotels = get_related_hotels( $hotel_id );
+
+        if ( $related_hotels && is_array( $related_hotels ) ) {
+            foreach ( $related_hotels as $hotel ) {
+                include FREESTAYS_PLUGIN_DIR . 'templates/hotel-card.php';
+            }
+        } else {
+            echo '<p>Geen gerelateerde hotels gevonden.</p>';
+        }
+        ?>
+    </div>
 </div>
 
 <?php
@@ -59,6 +74,24 @@ function get_hotel_details( $hotel_id ) {
         ],
         'description' => 'Dit is een voorbeeldbeschrijving van het hotel.',
         'availability' => true,
+    ];
+}
+
+// Functie om gerelateerde hotels op te halen (placeholder)
+function get_related_hotels( $hotel_id ) {
+    // Hier zou je de logica implementeren om gerelateerde hotels op te halen
+    // Dit kan een API-aanroep zijn of een databasequery
+    return [
+        [
+            'id' => 1,
+            'name' => 'Gerelateerd Hotel 1',
+            'image' => 'https://example.com/related1.jpg',
+        ],
+        [
+            'id' => 2,
+            'name' => 'Gerelateerd Hotel 2',
+            'image' => 'https://example.com/related2.jpg',
+        ],
     ];
 }
 ?>

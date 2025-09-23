@@ -23,6 +23,7 @@ require_once FREESTAYS_PLUGIN_DIR . 'includes/class-booking-handler.php';
 require_once FREESTAYS_PLUGIN_DIR . 'includes/class-shortcodes.php';
 require_once FREESTAYS_PLUGIN_DIR . 'includes/class-admin-settings.php';
 require_once FREESTAYS_PLUGIN_DIR . 'includes/helpers.php';
+require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/class-freestays-search-shortcode.php';
 
 // Activation hook
 function freestays_booking_activate() {
