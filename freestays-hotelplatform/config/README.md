@@ -1,4 +1,5 @@
 # Freestays Hotel Booking Platform Configuration
+Dit is de test vanuit dev via github naar aws
 
 This README file provides an overview of the configuration settings and environment variables required for the Freestays Hotel Booking Platform.
 
