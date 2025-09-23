@@ -52,8 +52,8 @@ register_deactivation_hook( __FILE__, 'freestays_booking_deactivate' );
 
 // Initialize the plugin
 function freestays_booking_init() {
-    // Initialize classes and hooks
-    new Freestays_API();
+    // Verwijder deze regel:
+    // new Freestays_API();
     new Sunhotels_Client();
     new Booking_Handler();
     new Shortcodes();
