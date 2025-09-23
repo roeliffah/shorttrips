@@ -1,0 +1,22 @@
+name: Deploy to AWS via rsync
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Sync files with rsync over SSH
+        uses: burnett01/rsync-deployments@7.0.0
+        with:
+          switches: -avz --delete
+          path: freestays-hotelplatform/
+          remote_path: /home/shorttrips/htdocs/shorttrips/
+          remote_host: ${{ secrets.AWS_HOST }}
+          remote_user: ${{ secrets.AWS_USER }}
+          remote_key: ${{ secrets.AWS_SSH_KEY }}
