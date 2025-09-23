@@ -25,6 +25,19 @@ require_once FREESTAYS_PLUGIN_DIR . 'includes/class-admin-settings.php';
 require_once FREESTAYS_PLUGIN_DIR . 'includes/helpers.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/class-freestays-search-shortcode.php';
 
+// Load environment variables from .env file if it exists
+if ( file_exists( dirname( __DIR__, 3 ) . '/config/.env' ) ) {
+    $dotenv = Dotenv\Dotenv::createImmutable( dirname( __DIR__, 3 ) . '/config' );
+    $dotenv->load();
+}
+
+// Get API credentials from environment variables
+$api_user = $_ENV['API_USER'] ?? '';
+$api_pass = $_ENV['API_PASS'] ?? '';
+
+// Initialize API class
+$api = new Freestays_API( $api_user, $api_pass );
+
 // Activation hook
 function freestays_booking_activate() {
     // Code to run on plugin activation
