@@ -26,5 +26,3 @@ class Freestays_Booking_Shortcodes {
         return ob_get_clean();
     }
 }
-
-new Freestays_Booking_Shortcodes();
