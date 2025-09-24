@@ -67,4 +67,8 @@ function freestays_enqueue_assets() {
     wp_enqueue_script( 'freestays-js', FREESTAYS_PLUGIN_URL . 'assets/js/freestays.js', array( 'jquery' ), null, true );
 }
 add_action( 'wp_enqueue_scripts', 'freestays_enqueue_assets' );
+
+if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
 ?>
