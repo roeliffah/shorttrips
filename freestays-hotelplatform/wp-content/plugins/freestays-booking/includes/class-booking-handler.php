@@ -1,6 +1,6 @@
 <?php
 
-class BookingHandler {
+class Booking_Handler {
     private $pdo;
 
     public function __construct($pdo) {
