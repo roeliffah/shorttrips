@@ -1,0 +1,13 @@
+{
+  "name": "freestays/booking-plugin",
+  "description": "Freestays maatwerk hotel booking plugin voor WordPress.",
+  "type": "wordpress-plugin",
+  "require": {
+    "vlucas/phpdotenv": "^5.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Freestays\\": "includes/"
+    }
+  }
+}

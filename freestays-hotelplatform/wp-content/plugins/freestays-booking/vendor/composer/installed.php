@@ -1,20 +1,20 @@
 <?php return array(
     'root' => array(
-        'name' => '__root__',
+        'name' => 'freestays/booking-plugin',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
         'reference' => '81db62403c211ae16576860c67ebe993332a9eb2',
-        'type' => 'library',
+        'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
-        '__root__' => array(
+        'freestays/booking-plugin' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
             'reference' => '81db62403c211ae16576860c67ebe993332a9eb2',
-            'type' => 'library',
+            'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
             'dev_requirement' => false,
