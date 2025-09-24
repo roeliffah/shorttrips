@@ -38,6 +38,7 @@ if ( file_exists( dirname( __DIR__, 3 ) . '/config/.env' ) ) {
 }
 
 // Get API credentials from environment variables
+$api_url  = $_ENV['API_URL'] ?? '';
 $api_user = $_ENV['API_USER'] ?? '';
 $api_pass = $_ENV['API_PASS'] ?? '';
 
@@ -58,9 +59,8 @@ register_deactivation_hook( __FILE__, 'freestays_booking_deactivate' );
 
 // Initialize the plugin
 function freestays_booking_init() {
-    // Verwijder deze regel:
-    // new Freestays_API();
-    new Sunhotels_Client();
+    global $api_url, $api_user, $api_pass;
+    new Sunhotels_Client($api_url, $api_user, $api_pass);
     new Booking_Handler();
     new Shortcodes();
     new Admin_Settings();
