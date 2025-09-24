@@ -1,5 +1,4 @@
 <?php
-<?php
 /**
  * Plugin Name: Freestays Booking
  * Description: Maatwerk hotel booking platform voor Freestays.
