@@ -194,8 +194,3 @@ function freestays_search_shortcode($atts) {
 add_shortcode('freestays_search', 'freestays_search_shortcode');
 
 
-// In Sunhotels_Client.php
-public function searchHotels($destination, $checkin, $checkout, $adults, $children, $child_ages, $rooms) {
-    // Bouw je request op basis van deze parameters en stuur naar de Sunhotels API
-    // Parseer de response en geef een array van hotels terug
-}
