@@ -1,6 +1,5 @@
 <?php
-
-class SunhotelsClient {
+class Sunhotels_Client {
     private $apiUrl;
     private $apiUser;
     private $apiPass;

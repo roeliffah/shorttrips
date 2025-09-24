@@ -12,6 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Composer autoloader als eerste laden!
+if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+error_log('Autoload bestaat: ' . (file_exists(__DIR__ . '/vendor/autoload.php') ? 'JA' : 'NEE'));
+
 // Define plugin constants
 define( 'FREESTAYS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FREESTAYS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -67,8 +73,3 @@ function freestays_enqueue_assets() {
     wp_enqueue_script( 'freestays-js', FREESTAYS_PLUGIN_URL . 'assets/js/freestays.js', array( 'jquery' ), null, true );
 }
 add_action( 'wp_enqueue_scripts', 'freestays_enqueue_assets' );
-
-if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
-    require_once __DIR__ . '/vendor/autoload.php';
-}
-?>
