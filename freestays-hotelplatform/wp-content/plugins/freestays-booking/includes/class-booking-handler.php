@@ -1,10 +1,9 @@
 <?php
 
 class Booking_Handler {
-    private $pdo;
 
-    public function __construct($pdo) {
-        $this->pdo = $pdo;
+    public function __construct() {
+        // Geen PDO nodig voor basisfunctionaliteit, kan later uitgebreid worden
     }
 
     public function validateBookingData($data) {
@@ -32,16 +31,24 @@ class Booking_Handler {
             return ['success' => false, 'errors' => $errors];
         }
 
-        // Insert booking into the database
-        $stmt = $this->pdo->prepare("INSERT INTO bookings (hotel_id, checkin_date, checkout_date, adults, children) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$data['hotel_id'], $data['checkin_date'], $data['checkout_date'], $data['adults'], $data['children'] ?? 0]);
-
-        return ['success' => true, 'booking_id' => $this->pdo->lastInsertId()];
+        // Hier zou je de boeking verwerken, bijvoorbeeld opslaan in de database of doorsturen naar Sunhotels
+        // Voor nu alleen een dummy response
+        return [
+            'success' => true,
+            'message' => 'Booking processed (dummy handler).',
+            'data'    => $data
+        ];
     }
 
     public function getBookingDetails($booking_id) {
-        $stmt = $this->pdo->prepare("SELECT * FROM bookings WHERE id = ?");
-        $stmt->execute([$booking_id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        // Dummy data, in productie haal je dit uit de database
+        return [
+            'id' => $booking_id,
+            'hotel_id' => 123,
+            'checkin_date' => '2025-10-01',
+            'checkout_date' => '2025-10-07',
+            'adults' => 2,
+            'children' => 0
+        ];
     }
 }
