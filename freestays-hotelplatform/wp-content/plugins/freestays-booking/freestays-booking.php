@@ -48,7 +48,7 @@ register_deactivation_hook( __FILE__, 'freestays_booking_deactivate' );
 function freestays_booking_init() {
     new Booking_Handler();
     new Freestays_Booking_Shortcodes();
-    new Admin_Settings();
+    new Freestays_Admin_Settings();
 }
 add_action( 'plugins_loaded', 'freestays_booking_init' );
 
