@@ -60,195 +60,6 @@ function freestays_enqueue_assets() {
 add_action( 'wp_enqueue_scripts', 'freestays_enqueue_assets' );
 
 /**
- * Haal een mapping van bestemmingsnamen naar IATA-codes op via Sunhotels GetDestinations.
- * Resultaat wordt gecachet met een WordPress transient (standaard 12 uur).
- *
- * @return array naam => code
- */
-function freestays_get_destination_map() {
-    error_log('freestays_get_destination_map wordt aangeroepen');
-    $map = get_transient('freestays_destination_map');
-    if ($map !== false && is_array($map)) {
-        error_log('Mapping uit cache gehaald, aantal: ' . count($map));
-        return $map;
-    }
-
-    $api_url  = $_ENV['API_URL'] ?? '';
-    $api_user = $_ENV['API_USER'] ?? '';
-    $api_pass = $_ENV['API_PASS'] ?? '';
-    $language = 'en';
-
-    error_log('API URL: ' . $api_url);
-
-    $endpoint = rtrim($api_url, '/') . '/GetDestinations';
-    $params = [
-        'userName'              => $api_user,
-        'password'              => $api_pass,
-        'language'              => $language,
-        'destinationCode'       => '',
-        'sortBy'                => 'Destination',
-        'sortOrder'             => 'asc',
-        'exactDestinationMatch' => 'false',
-    ];
-    $url = $endpoint . '?' . http_build_query($params);
-
-    error_log('GetDestinations URL: ' . $url);
-
-    $response = wp_remote_get($url, [
-        'timeout' => 30,
-        'headers' => [
-            'Accept' => 'application/xml',
-        ],
-    ]);
-    if (is_wp_error($response)) {
-        error_log('Sunhotels GetDestinations error: ' . $response->get_error_message());
-        return [];
-    }
-    $body = wp_remote_retrieve_body($response);
-    error_log('Sunhotels GetDestinations response: ' . substr($body, 0, 500));
-    if (empty($body)) {
-        error_log('Lege response van Sunhotels GetDestinations.');
-        return [];
-    }
-
-    $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
-    if ($xml === false) {
-        error_log('Ongeldige XML van Sunhotels GetDestinations.');
-        return [];
-    }
-
-    // Mapping opbouwen: naam => code (en evt. alternatieven)
-    $map = [];
-    if (isset($xml->Destinations->Destination)) {
-        foreach ($xml->Destinations->Destination as $dest) {
-            $name = strtolower((string)$dest->DestinationName);
-            $code = (string)$dest->DestinationCode;
-            if ($name && $code) {
-                $map[$name] = $code;
-            }
-            // Alternatieve codes toevoegen
-            for ($i = 2; $i <= 4; $i++) {
-                $altCode = (string)$dest->{'DestinationCode.' . $i};
-                if ($altCode) {
-                    $map[strtolower($altCode)] = $altCode;
-                }
-            }
-        }
-    }
-
-    set_transient('freestays_destination_map', $map, 12 * HOUR_IN_SECONDS);
-    return $map;
-}
-
-// Shortcode handler: initialiseer Sunhotels_Client alleen bij zoekactie
-//function freestays_search_shortcode($atts) {
-  //  $api_url  = $_ENV['API_URL'] ?? '';
-    //$api_user = $_ENV['API_USER'] ?? '';
-    //$api_pass = $_ENV['API_PASS'] ?? '';
-
-    //$client = new Sunhotels_Client($api_url, $api_user, $api_pass);
-
-    // Mapping ophalen voor dropdown
-    $destination_map = freestays_get_destination_map();
-
-    // Formulierwaarden ophalen of standaardwaarden instellen
-    $destination = isset($_POST['freestays_destination']) ? sanitize_text_field($_POST['freestays_destination']) : '';
-    $checkin     = isset($_POST['freestays_checkin']) ? sanitize_text_field($_POST['freestays_checkin']) : '';
-    $checkout    = isset($_POST['freestays_checkout']) ? sanitize_text_field($_POST['freestays_checkout']) : '';
-    $adults      = isset($_POST['freestays_adults']) ? intval($_POST['freestays_adults']) : 2;
-    $children    = isset($_POST['freestays_children']) ? intval($_POST['freestays_children']) : 0;
-    $rooms       = isset($_POST['freestays_rooms']) ? intval($_POST['freestays_rooms']) : 1;
-
-    // Kind-leeftijden ophalen
-    $child_ages = [];
-    if ($children > 0) {
-        for ($i = 1; $i <= $children; $i++) {
-            $child_ages[] = isset($_POST["freestays_child_age_$i"]) ? intval($_POST["freestays_child_age_$i"]) : '';
-        }
-    }
-
-    // Zoekformulier tonen, dynamisch dropdown
-    $output = '<form method="post" class="freestays-search-form">';
-    $output .= '<label for="freestays_destination">Bestemming:</label>';
-    if (empty($destination_map)) {
-        $output .= '<div style="color:red;">Geen bestemmingen beschikbaar. Probeer het later opnieuw.</div>';
-    } else {
-        $output .= '<select name="freestays_destination" id="freestays_destination" required>';
-        $output .= '<option value="">Kies bestemming</option>';
-        $unique = [];
-        foreach ($destination_map as $name => $code) {
-            if (!in_array($code, $unique)) {
-                $selected = ($destination === $code) ? ' selected' : '';
-                $output .= '<option value="' . esc_attr($code) . '"' . $selected . '>' . esc_html(ucfirst($name)) . '</option>';
-                $unique[] = $code;
-            }
-        }
-        $output .= '</select>';
-    }
-    // Voeg overige formuliervelden toe (voorbeeld)
-    $output .= '<label for="freestays_checkin">Check-in:</label>';
-    $output .= '<input type="date" name="freestays_checkin" id="freestays_checkin" value="' . esc_attr($checkin) . '" required>';
-    $output .= '<label for="freestays_checkout">Check-out:</label>';
-    $output .= '<input type="date" name="freestays_checkout" id="freestays_checkout" value="' . esc_attr($checkout) . '" required>';
-    $output .= '<label for="freestays_adults">Volwassenen:</label>';
-    $output .= '<input type="number" name="freestays_adults" id="freestays_adults" value="' . esc_attr($adults) . '" min="1" required>';
-    $output .= '<label for="freestays_children">Kinderen:</label>';
-    $output .= '<input type="number" name="freestays_children" id="freestays_children" value="' . esc_attr($children) . '" min="0">';
-    $output .= '<label for="freestays_rooms">Kamers:</label>';
-    $output .= '<input type="number" name="freestays_rooms" id="freestays_rooms" value="' . esc_attr($rooms) . '" min="1" required>';
-    $output .= '<button type="submit">Zoeken</button>';
-    $output .= '</form>';
-
-    // Resultaten tonen als er gezocht is
-    if (!empty($destination) && !empty($checkin) && !empty($checkout)) {
-        $destination_id = $destination; // dropdown value is altijd de code
-
-        try {
-            $hotels = $client->searchHotels(
-                $destination_id,
-                $checkin,
-                $checkout,
-                $adults,
-                $children,
-                $child_ages,
-                $rooms
-            );
-        } catch (Exception $e) {
-            $output .= '<div class="freestays-search-results">';
-            $output .= '<p style="color:red;">Fout bij ophalen hotels: ' . esc_html($e->getMessage()) . '</p>';
-            $output .= '</div>';
-            return $output;
-        }
-
-        $output .= '<div class="freestays-search-results">';
-        if (is_array($hotels) && count($hotels) > 0) {
-            $output .= '<ul>';
-            foreach ($hotels as $hotel) {
-                $output .= '<li>';
-                $output .= '<strong>' . esc_html($hotel['name'] ?? 'Onbekend hotel') . '</strong>';
-                if (!empty($hotel['city'])) {
-                    $output .= ' - ' . esc_html($hotel['city']);
-                }
-                if (!empty($hotel['address'])) {
-                    $output .= '<br><small>' . esc_html($hotel['address']) . '</small>';
-                }
-                if (!empty($hotel['image'])) {
-                    $output .= '<br><img src="' . esc_url($hotel['image']) . '" alt="' . esc_attr($hotel['name'] ?? '') . '" style="max-width:200px;">';
-                }
-                $output .= '</li>';
-            }
-            $output .= '</ul>';
-        } else {
-            $output .= '<p>Geen hotels gevonden voor deze zoekopdracht.</p>';
-        }
-        $output .= '</div>';
-    }
-
-    return $output;
-}
-add_shortcode('freestays_search', 'freestays_search_shortcode');
-
-/**
  * Haal landen op via Sunhotels API.
  */
 function freestays_get_countries() {
@@ -430,8 +241,7 @@ function freestays_get_resorts($city_id) {
 
 /**
  * Shortcode handler: zoekformulier met vrij zoekveld en dropdowns.
- * - Werkt met POST en laadt steden/resorts opnieuw bij selectie (via form submit).
- * - Voor een vloeiendere UX kun je later AJAX toevoegen (zie uitleg onderaan).
+ * - Werkt met POST en laadt steden/resorts opnieuw bij selectie (via AJAX).
  */
 function freestays_search_shortcode($atts) {
     // Ophalen van landen, steden, resorts op basis van POST of default
@@ -497,8 +307,6 @@ function freestays_search_shortcode($atts) {
 
     // Resultaten tonen als er gezocht is
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
-        // Hier kun je de Sunhotels API aanroepen met de gekozen parameters
-        // Voorbeeld: zoekHotels($country_id, $city_id, $resort_id, $search_query, $checkin, $checkout, $adults, $children, $rooms)
         $client = new Sunhotels_Client($_ENV['API_URL'], $_ENV['API_USER'], $_ENV['API_PASS']);
         try {
             $hotels = $client->searchHotels([
