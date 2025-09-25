@@ -18,22 +18,29 @@ class Sunhotels_Client {
 
     /**
      * Zoek hotels via de Sunhotels API SearchV2 (NonStatic).
-     * @param string $destination IATA-code of destination (bijv. PMI)
+     * @param string $country_id
+     * @param string $city_id
+     * @param string $resort_id
+     * @param string $search_query
      * @param string $checkin (YYYY-MM-DD)
      * @param string $checkout (YYYY-MM-DD)
      * @param int $adults
      * @param int $children
+     * @param int $rooms
      * @param array $child_ages
      * @param int $infant
      * @return array
      * @throws Exception
      */
-    public function searchHotels($destination, $checkin, $checkout, $adults, $children, $child_ages, $infant = 0) {
+    public function searchHotels($country_id, $city_id, $resort_id, $search_query, $checkin, $checkout, $adults, $children, $rooms, $child_ages = [], $infant = 0) {
         $endpoint = $this->apiUrl . '/SearchV2';
 
         // Sunhotels ondersteunt alleen 1 kamer per boeking
         $numberOfRooms = 1;
 
+        if (!is_array($child_ages)) {
+            $child_ages = [];
+        }
         $childrenAges = ($children > 0 && !empty($child_ages)) ? implode(',', $child_ages) : '';
 
         $params = [
@@ -44,7 +51,7 @@ class Sunhotels_Client {
             'checkInDate'      => $checkin,
             'checkOutDate'     => $checkout,
             'numberOfRooms'    => $numberOfRooms,
-            'destination'      => $destination,
+            'destination'      => $search_query,
             'numberOfAdults'   => $adults,
             'numberOfChildren' => $children,
             'childrenAges'     => $childrenAges,

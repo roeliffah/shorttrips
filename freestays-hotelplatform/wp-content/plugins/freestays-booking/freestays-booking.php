@@ -327,6 +327,13 @@ function freestays_search_shortcode($atts) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
         $client = new Sunhotels_Client($_ENV['API_URL'], $_ENV['API_USER'], $_ENV['API_PASS']);
         try {
+            $child_ages = [];
+            if ($children > 0) {
+                for ($i = 1; $i <= $children; $i++) {
+                    $child_ages[] = isset($_POST["freestays_child_age_$i"]) ? intval($_POST["freestays_child_age_$i"]) : 0;
+                }
+            }
+
             $hotels = $client->searchHotels(
                 $country_id,
                 $city_id,
@@ -336,7 +343,8 @@ function freestays_search_shortcode($atts) {
                 $checkout,
                 $adults,
                 $children,
-                $rooms
+                $rooms,
+                $child_ages
             );
         } catch (Exception $e) {
             $output .= '<div class="freestays-search-results">';
