@@ -171,7 +171,7 @@ function freestays_search_shortcode($atts) {
     $output = '<form method="post" class="freestays-search-form">';
     $output .= '<label for="freestays_destination">Bestemming:</label>';
     if (empty($destination_map)) {
-        $output .= '<select name="freestays_destination" id="freestays_destination" disabled><option>Geen bestemmingen beschikbaar</option></select>';
+        $output .= '<div style="color:red;">Geen bestemmingen beschikbaar. Probeer het later opnieuw.</div>';
     } else {
         $output .= '<select name="freestays_destination" id="freestays_destination" required>';
         $output .= '<option value="">Kies bestemming</option>';
