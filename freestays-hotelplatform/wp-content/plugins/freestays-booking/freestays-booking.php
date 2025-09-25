@@ -11,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 // Composer autoloader
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
     require_once __DIR__ . '/vendor/autoload.php';
+    // .env laden indien aanwezig (Optie 2)
+    $env_path = dirname(__DIR__, 3) . '/config';
+    if (file_exists($env_path . '/.env')) {
+        $dotenv = Dotenv\Dotenv::createImmutable($env_path);
+        $dotenv->load();
+    }
 }
 
 // Plugin constants
@@ -19,12 +25,6 @@ define( 'FREESTAYS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 // Vereiste bestanden laden
 require_once FREESTAYS_PLUGIN_DIR . 'includes/api/class-sunhotels-client.php';
-
-// .env laden indien aanwezig
-if ( file_exists( dirname( __DIR__, 3 ) . '/config/.env' ) ) {
-    $dotenv = Dotenv\Dotenv::createImmutable( dirname( __DIR__, 3 ) . '/config' );
-    $dotenv->load();
-}
 
 // Landen ophalen via Sunhotels REST API
 function freestays_get_countries() {
