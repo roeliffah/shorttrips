@@ -141,12 +141,12 @@ function freestays_get_destination_map() {
 }
 
 // Shortcode handler: initialiseer Sunhotels_Client alleen bij zoekactie
-function freestays_search_shortcode($atts) {
-    $api_url  = $_ENV['API_URL'] ?? '';
-    $api_user = $_ENV['API_USER'] ?? '';
-    $api_pass = $_ENV['API_PASS'] ?? '';
+//function freestays_search_shortcode($atts) {
+  //  $api_url  = $_ENV['API_URL'] ?? '';
+    //$api_user = $_ENV['API_USER'] ?? '';
+    //$api_pass = $_ENV['API_PASS'] ?? '';
 
-    $client = new Sunhotels_Client($api_url, $api_user, $api_pass);
+    //$client = new Sunhotels_Client($api_url, $api_user, $api_pass);
 
     // Mapping ophalen voor dropdown
     $destination_map = freestays_get_destination_map();
