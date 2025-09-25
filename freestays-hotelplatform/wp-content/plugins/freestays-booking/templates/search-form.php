@@ -11,10 +11,23 @@ try {
     $destinations = $client->getDestinations();
 } catch (Exception $e) {
     $destinations = [];
-    echo '<div class="error">Kan bestemmingen niet laden: ' . esc_html($e->getMessage()) . '</div>';
+    echo '<div class="error">Kan landen niet laden: ' . esc_html($e->getMessage()) . '</div>';
 }
 ?>
-<form id="hotel-search-form" method="GET" action="">
+<form method="post" class="freestays-search-form">
+    <label for="freestays_search">Zoek op hotel, regio of land:</label>
+    <input type="text" name="freestays_search" id="freestays_search" value="" placeholder="Bijv. Alanya, Turkije, Hotelnaam">
+
+    <label for="freestays_country">Land:</label>
+    <select name="freestays_country" id="freestays_country">
+        <option value="">Kies land</option>
+        <?php foreach ($destinations as $dest): ?>
+            <option value="<?php echo esc_attr($dest['id']); ?>">
+                <?php echo esc_html($dest['name']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+
     <div class="form-group">
         <label for="checkin">Check-in Date:</label>
         <input type="date" id="checkin" name="checkin" required>

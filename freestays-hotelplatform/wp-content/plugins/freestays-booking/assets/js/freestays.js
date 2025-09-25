@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayHotels(hotels) {
         const hotelList = document.getElementById('hotel-list');
+        if (!hotelList) return;
         hotelList.innerHTML = ''; // Clear previous results
 
         hotels.forEach(hotel => {
@@ -91,6 +92,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 <a href="/hotel/${hotel.hotel_id}" class="btn">View Details</a>
             `;
             hotelList.appendChild(hotelItem);
+        });
+    }
+
+    // Dynamisch laden van steden en resorts op basis van land en stad
+    if (typeof jQuery !== 'undefined') {
+        jQuery(function($) {
+            $('#freestays_country').on('change', function() {
+                var countryId = $(this).val();
+                $('#freestays_city').html('<option>Even laden...</option>');
+                $('#freestays_resort').html('<option>Kies resort (optioneel)</option>');
+                $.post(freestaysAjax.ajax_url, {
+                    action: 'freestays_get_cities',
+                    country_id: countryId
+                }, function(response) {
+                    var options = '<option value="">Kies stad</option>';
+                    if (Array.isArray(response)) {
+                        $.each(response, function(i, city) {
+                            options += '<option value="' + city.id + '">' + city.name + '</option>';
+                        });
+                    } else {
+                        options += '<option value="">Geen steden gevonden</option>';
+                    }
+                    $('#freestays_city').html(options);
+                });
+            });
+
+            $('#freestays_city').on('change', function() {
+                var cityId = $(this).val();
+                $('#freestays_resort').html('<option>Even laden...</option>');
+                $.post(freestaysAjax.ajax_url, {
+                    action: 'freestays_get_resorts',
+                    city_id: cityId
+                }, function(response) {
+                    var options = '<option value="">Kies resort (optioneel)</option>';
+                    if (Array.isArray(response)) {
+                        $.each(response, function(i, resort) {
+                            options += '<option value="' + resort.id + '">' + resort.name + '</option>';
+                        });
+                    } else {
+                        options += '<option value="">Geen resorts gevonden</option>';
+                    }
+                    $('#freestays_resort').html(options);
+                });
+            });
         });
     }
 });
