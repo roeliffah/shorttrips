@@ -86,7 +86,7 @@ function freestays_get_destination_map() {
         'password'              => $api_pass,
         'language'              => $language,
         'destinationCode'       => '',
-        'sortBy'                => 'DestinationName',
+        'sortBy'                => 'Destination',
         'sortOrder'             => 'asc',
         'exactDestinationMatch' => 'false',
     ];
