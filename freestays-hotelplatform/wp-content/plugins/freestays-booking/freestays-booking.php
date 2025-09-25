@@ -71,18 +71,20 @@ function freestays_get_destination_map() {
         return $map;
     }
 
-    // Haal credentials uit .env of config
     $api_url  = $_ENV['API_URL'] ?? '';
     $api_user = $_ENV['API_USER'] ?? '';
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
-    // Bouw de GetDestinations endpoint
     $endpoint = rtrim($api_url, '/') . '/GetDestinations';
     $params = [
-        'userName'  => $api_user,
-        'password'  => $api_pass,
-        'language'  => $language,
+        'userName'              => $api_user,
+        'password'              => $api_pass,
+        'language'              => $language,
+        'destinationCode'       => '',
+        'sortBy'                => 'DestinationName',
+        'sortOrder'             => 'asc',
+        'exactDestinationMatch' => 'false', // <-- toegevoegd!
     ];
     $url = $endpoint . '?' . http_build_query($params);
 
