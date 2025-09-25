@@ -1,16 +1,14 @@
 <?php
-// Zorg dat $client een instantie is van Sunhotels_Client
-if (!isset($client) || !$client instanceof Sunhotels_Client) {
-    $apiUrl  = getenv('API_URL');
-    $apiUser = getenv('API_USER');
-    $apiPass = getenv('API_PASS');
-    $client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass);
-}
+// Haal landen op via de Sunhotels API
+$apiUrl  = getenv('API_URL');
+$apiUser = getenv('API_USER');
+$apiPass = getenv('API_PASS');
+$client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass);
 
 try {
-    $destinations = $client->getDestinations();
+    $countries = $client->getDestinations(); // of getCountries() als dat correct is
 } catch (Exception $e) {
-    $destinations = [];
+    $countries = [];
     echo '<div class="error">Kan landen niet laden: ' . esc_html($e->getMessage()) . '</div>';
 }
 ?>
