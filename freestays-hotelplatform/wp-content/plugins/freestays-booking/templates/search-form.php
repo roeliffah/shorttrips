@@ -1,3 +1,19 @@
+<?php
+// Zorg dat $client een instantie is van Sunhotels_Client
+if (!isset($client) || !$client instanceof Sunhotels_Client) {
+    $apiUrl  = getenv('API_URL');
+    $apiUser = getenv('API_USER');
+    $apiPass = getenv('API_PASS');
+    $client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass);
+}
+
+try {
+    $destinations = $client->getDestinations();
+} catch (Exception $e) {
+    $destinations = [];
+    echo '<div class="error">Kan bestemmingen niet laden: ' . esc_html($e->getMessage()) . '</div>';
+}
+?>
 <form id="hotel-search-form" method="GET" action="">
     <div class="form-group">
         <label for="checkin">Check-in Date:</label>
@@ -36,8 +52,19 @@
         </select>
     </div>
     <div class="form-group">
-        <label for="destination">Destination:</label>
-        <input type="text" id="destination" name="destination" placeholder="Enter destination" required>
+        <label for="destination">Destination (vrij zoeken):</label>
+        <input type="text" id="destination" name="destination" placeholder="Enter destination">
+    </div>
+    <div class="form-group">
+        <label for="destination_id">Of kies uit de lijst:</label>
+        <select id="destination_id" name="destination_id">
+            <option value="">Kies een bestemming...</option>
+            <?php foreach ($destinations as $dest): ?>
+                <option value="<?php echo esc_attr($dest['id']); ?>">
+                    <?php echo esc_html($dest['name']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
     </div>
     <button type="submit">Search Hotels</button>
 </form>
