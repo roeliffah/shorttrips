@@ -164,18 +164,21 @@ function freestays_search_shortcode($atts) {
     // Zoekformulier tonen, dynamisch dropdown
     $output = '<form method="post" class="freestays-search-form">';
     $output .= '<label for="freestays_destination">Bestemming:</label>';
-    $output .= '<select name="freestays_destination" id="freestays_destination" required>';
-    $output .= '<option value="">Kies bestemming</option>';
-    // Toon alleen unieke codes met hun naam
-    $unique = [];
-    foreach ($destination_map as $name => $code) {
-        if (!in_array($code, $unique)) {
-            $selected = ($destination === $code) ? ' selected' : '';
-            $output .= '<option value="' . esc_attr($code) . '"' . $selected . '>' . esc_html(ucfirst($name)) . '</option>';
-            $unique[] = $code;
+    if (empty($destination_map)) {
+        $output .= '<select name="freestays_destination" id="freestays_destination" disabled><option>Geen bestemmingen beschikbaar</option></select>';
+    } else {
+        $output .= '<select name="freestays_destination" id="freestays_destination" required>';
+        $output .= '<option value="">Kies bestemming</option>';
+        $unique = [];
+        foreach ($destination_map as $name => $code) {
+            if (!in_array($code, $unique)) {
+                $selected = ($destination === $code) ? ' selected' : '';
+                $output .= '<option value="' . esc_attr($code) . '"' . $selected . '>' . esc_html(ucfirst($name)) . '</option>';
+                $unique[] = $code;
+            }
         }
+        $output .= '</select>';
     }
-    $output .= '</select>';
     // Voeg overige formuliervelden toe (voorbeeld)
     $output .= '<label for="freestays_checkin">Check-in:</label>';
     $output .= '<input type="date" name="freestays_checkin" id="freestays_checkin" value="' . esc_attr($checkin) . '" required>';
