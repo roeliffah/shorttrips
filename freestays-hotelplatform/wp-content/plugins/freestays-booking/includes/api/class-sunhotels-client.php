@@ -50,9 +50,9 @@ class Sunhotels_Client {
         }
 
         $body = wp_remote_retrieve_body($response);
-        if (empty($body)) {
-            throw new Exception('Lege response van Sunhotels API.');
-        }
+
+        // Vervang niet-ondersteunde HTML-entiteiten door een spatie
+        $body = preg_replace('/&[a-zA-Z0-9#]+;/', ' ', $body);
 
         $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
         if ($xml === false) {
