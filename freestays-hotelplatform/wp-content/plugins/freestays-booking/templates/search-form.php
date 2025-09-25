@@ -80,3 +80,6 @@ try {
         </div>
     </div>
 </form>
+<?php
+error_log('API_URL: ' . getenv('API_URL'));
+?>
