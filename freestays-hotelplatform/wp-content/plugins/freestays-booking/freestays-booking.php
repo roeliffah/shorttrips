@@ -100,6 +100,7 @@ function freestays_get_destination_map() {
         return [];
     }
     $body = wp_remote_retrieve_body($response);
+    error_log('Sunhotels GetDestinations response: ' . substr($body, 0, 500)); // debugregel toevoegen
     if (empty($body)) {
         error_log('Lege response van Sunhotels GetDestinations.');
         return [];
