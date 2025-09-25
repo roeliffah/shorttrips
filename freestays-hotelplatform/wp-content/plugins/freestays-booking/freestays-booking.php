@@ -73,6 +73,12 @@ function freestays_get_countries() {
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
+    // API-configuratie check
+    if (empty($api_url) || empty($api_user) || empty($api_pass)) {
+        error_log('API config ontbreekt!');
+        return [];
+    }
+
     $endpoint = rtrim($api_url, '/') . '/GetCountries';
     $params = [
         'userName' => $api_user,
@@ -92,8 +98,8 @@ function freestays_get_countries() {
         return [];
     }
     $body = wp_remote_retrieve_body($response);
-    if (empty($body)) {
-        error_log('Lege response van Sunhotels GetCountries.');
+    if (empty($body) || strpos(trim($body), '<') !== 0) {
+        error_log('Lege of ongeldige response van Sunhotels GetCountries: ' . $body);
         return [];
     }
 
@@ -133,6 +139,12 @@ function freestays_get_cities($country_id) {
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
+    // API-configuratie check
+    if (empty($api_url) || empty($api_user) || empty($api_pass)) {
+        error_log('API config ontbreekt!');
+        return [];
+    }
+
     $endpoint = rtrim($api_url, '/') . '/GetCities';
     $params = [
         'userName'  => $api_user,
@@ -153,8 +165,8 @@ function freestays_get_cities($country_id) {
         return [];
     }
     $body = wp_remote_retrieve_body($response);
-    if (empty($body)) {
-        error_log('Lege response van Sunhotels GetCities.');
+    if (empty($body) || strpos(trim($body), '<') !== 0) {
+        error_log('Lege of ongeldige response van Sunhotels GetCities: ' . $body);
         return [];
     }
 
@@ -194,6 +206,12 @@ function freestays_get_resorts($city_id) {
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
+    // API-configuratie check
+    if (empty($api_url) || empty($api_user) || empty($api_pass)) {
+        error_log('API config ontbreekt!');
+        return [];
+    }
+
     $endpoint = rtrim($api_url, '/') . '/GetResorts';
     $params = [
         'userName' => $api_user,
@@ -214,8 +232,8 @@ function freestays_get_resorts($city_id) {
         return [];
     }
     $body = wp_remote_retrieve_body($response);
-    if (empty($body)) {
-        error_log('Lege response van Sunhotels GetResorts.');
+    if (empty($body) || strpos(trim($body), '<') !== 0) {
+        error_log('Lege of ongeldige response van Sunhotels GetResorts: ' . $body);
         return [];
     }
 
