@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Freestays Booking
- * Description: Maatwerk hotel booking platform voor Freestays.
+ * Description: Maatwerk hotelboekingsplugin voor Freestays, met Sunhotels API-integratie.
  * Version: 1.0
- * Author: Freestays
+ * Author: Freestays Team
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
@@ -326,52 +326,66 @@ function freestays_search_shortcode($atts) {
 add_shortcode('freestays_search', 'freestays_search_shortcode');
 
 /**
- * AJAX handler voor steden
+ * AJAX handler voor steden (cities) op basis van country_id
  */
 add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
 add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
 function freestays_ajax_get_cities() {
+    // Haal country_id uit POST
     $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
+    if (empty($country_id)) {
+        wp_send_json([]);
+    }
+
+    // Gebruik de bestaande functie voor ophalen van steden
     $cities = freestays_get_cities($country_id);
+
+    // Geef als JSON terug
     wp_send_json($cities);
 }
 
 /**
- * AJAX handler voor resorts
+ * AJAX handler voor resorts op basis van city_id
  */
 add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
 add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
 function freestays_ajax_get_resorts() {
+    // Haal city_id uit POST
     $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
+    if (empty($city_id)) {
+        wp_send_json([]);
+    }
+
+    // Gebruik de bestaande functie voor ophalen van resorts
     $resorts = freestays_get_resorts($city_id);
+
+    // Geef als JSON terug
     wp_send_json($resorts);
 }
 
 /**
- * JavaScript en AJAX script toevoegen
+ * CSS en JS inladen
  */
-add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_script(
-        'freestays-ajax',
-        FREESTAYS_PLUGIN_URL . 'assets/js/freestays-ajax.js',
-        array('jquery'),
-        null,
-        true
-    );
-    wp_localize_script('freestays-ajax', 'freestaysAjax', array(
-        'ajax_url' => admin_url('admin-ajax.php'),
-    ));
-});
-
-/**
- * CSS styles toevoegen
- */
-function freestays_enqueue_styles() {
+function freestays_enqueue_assets() {
     wp_enqueue_style(
         'freestays-css',
         plugins_url('assets/css/freestays.css', __FILE__),
         array(),
         filemtime(plugin_dir_path(__FILE__) . 'assets/css/freestays.css')
     );
+    wp_enqueue_script(
+        'freestays-ajax-js',
+        plugins_url('assets/js/freestays-ajax.js', __FILE__),
+        array('jquery'),
+        filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays-ajax.js'),
+        true
+    );
+    wp_localize_script(
+        'freestays-ajax-js',
+        'freestaysAjax',
+        array('ajax_url' => admin_url('admin-ajax.php'))
+    );
 }
-add_action('wp_enqueue_scripts', 'freestays_enqueue_styles');
+add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
+
+require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/hotel-list.php';

@@ -199,4 +199,125 @@ class Sunhotels_Client {
 
         return json_decode(json_encode($xml), true);
     }
+
+    /**
+     * Haal bestemmingen (landen) op uit de Sunhotels API.
+     * @return array
+     */
+    public function getDestinations() {
+        $params = [
+            'method'   => 'GetDestinations',
+            'userName' => $this->apiUser,
+            'password' => $this->apiPass,
+            'language' => $this->language,
+        ];
+
+        $response = wp_remote_post($this->apiUrl, [
+            'body'    => $params,
+            'timeout' => 30,
+        ]);
+        if (is_wp_error($response)) {
+            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
+        }
+        $body = wp_remote_retrieve_body($response);
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            throw new Exception('Ongeldige XML van Sunhotels API (GetDestinations).');
+        }
+        if (isset($xml->Error)) {
+            throw new Exception('Sunhotels API error: ' . (string)$xml->Error->Message);
+        }
+        $destinations = [];
+        if (isset($xml->destinations->destination)) {
+            foreach ($xml->destinations->destination as $dest) {
+                $destinations[] = [
+                    'destinationId'   => (string)($dest->destinationId ?? ''),
+                    'destinationName' => (string)($dest->destinationName ?? ''),
+                ];
+            }
+        }
+        return $destinations;
+    }
+
+    /**
+     * Haal steden op voor een land (destinationId) uit de Sunhotels API.
+     * @param string $countryId
+     * @return array
+     */
+    public function getCitiesByCountry($countryId) {
+        $params = [
+            'method'       => 'GetCities',
+            'userName'     => $this->apiUser,
+            'password'     => $this->apiPass,
+            'language'     => $this->language,
+            'destinationId'=> $countryId,
+        ];
+
+        $response = wp_remote_post($this->apiUrl, [
+            'body'    => $params,
+            'timeout' => 30,
+        ]);
+        if (is_wp_error($response)) {
+            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
+        }
+        $body = wp_remote_retrieve_body($response);
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            throw new Exception('Ongeldige XML van Sunhotels API (GetCities).');
+        }
+        if (isset($xml->Error)) {
+            throw new Exception('Sunhotels API error: ' . (string)$xml->Error->Message);
+        }
+        $cities = [];
+        if (isset($xml->cities->city)) {
+            foreach ($xml->cities->city as $city) {
+                $cities[] = [
+                    'id'   => (string)($city->cityId ?? ''),
+                    'name' => (string)($city->cityName ?? ''),
+                ];
+            }
+        }
+        return $cities;
+    }
+
+    /**
+     * Haal resorts op voor een stad (cityId) uit de Sunhotels API.
+     * @param string $cityId
+     * @return array
+     */
+    public function getResortsByCity($cityId) {
+        $params = [
+            'method'   => 'GetResorts',
+            'userName' => $this->apiUser,
+            'password' => $this->apiPass,
+            'language' => $this->language,
+            'cityId'   => $cityId,
+        ];
+
+        $response = wp_remote_post($this->apiUrl, [
+            'body'    => $params,
+            'timeout' => 30,
+        ]);
+        if (is_wp_error($response)) {
+            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
+        }
+        $body = wp_remote_retrieve_body($response);
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            throw new Exception('Ongeldige XML van Sunhotels API (GetResorts).');
+        }
+        if (isset($xml->Error)) {
+            throw new Exception('Sunhotels API error: ' . (string)$xml->Error->Message);
+        }
+        $resorts = [];
+        if (isset($xml->resorts->resort)) {
+            foreach ($xml->resorts->resort as $resort) {
+                $resorts[] = [
+                    'id'   => (string)($resort->resortId ?? ''),
+                    'name' => (string)($resort->resortName ?? ''),
+                ];
+            }
+        }
+        return $resorts;
+    }
 }

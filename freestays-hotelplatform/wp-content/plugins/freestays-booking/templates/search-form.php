@@ -3,15 +3,17 @@
 $apiUrl  = getenv('API_URL');
 $apiUser = getenv('API_USER');
 $apiPass = getenv('API_PASS');
+require_once plugin_dir_path(__FILE__) . '../includes/api/class-sunhotels-client.php';
 $client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass);
 
 try {
-    $countries = $client->getDestinations(); // of getCountries() als dat correct is
+    $countries = $client->getDestinations(); // Controleer de key-namen hieronder!
 } catch (Exception $e) {
     $countries = [];
     echo '<div class="error">Kan landen niet laden: ' . esc_html($e->getMessage()) . '</div>';
 }
 ?>
+<?php // var_dump($countries); ?>
 <form method="post" class="freestays-search-form">
     <div class="fs-search-row">
         <div class="form-group" style="flex:2">
@@ -22,9 +24,9 @@ try {
             <label for="freestays_country">Land</label>
             <select name="freestays_country" id="freestays_country">
                 <option value="">Kies land</option>
-                <?php foreach ($countries ?? [] as $country): ?>
-                    <option value="<?php echo esc_attr($country['id']); ?>"<?php if (($country_id ?? '') === $country['id']) echo ' selected'; ?>>
-                        <?php echo esc_html($country['name']); ?>
+                <?php foreach ($countries as $country): ?>
+                    <option value="<?php echo esc_attr($country['destinationId'] ?? $country['id']); ?>">
+                        <?php echo esc_html($country['destinationName'] ?? $country['name']); ?>
                     </option>
                 <?php endforeach; ?>
             </select>

@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     country_id: countryId
                 }, function(response) {
                     var options = '<option value="">Kies stad</option>';
-                    if (Array.isArray(response)) {
+                    if (Array.isArray(response) && response.length > 0) {
                         $.each(response, function(i, city) {
                             options += '<option value="' + city.id + '">' + city.name + '</option>';
                         });
@@ -115,6 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         options += '<option value="">Geen steden gevonden</option>';
                     }
                     $('#freestays_city').html(options);
+                }).fail(function() {
+                    $('#freestays_city').html('<option value="">Fout bij laden steden</option>');
                 });
             });
 
@@ -126,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     city_id: cityId
                 }, function(response) {
                     var options = '<option value="">Kies resort (optioneel)</option>';
-                    if (Array.isArray(response)) {
+                    if (Array.isArray(response) && response.length > 0) {
                         $.each(response, function(i, resort) {
                             options += '<option value="' + resort.id + '">' + resort.name + '</option>';
                         });
@@ -134,6 +136,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         options += '<option value="">Geen resorts gevonden</option>';
                     }
                     $('#freestays_resort').html(options);
+                }).fail(function() {
+                    $('#freestays_resort').html('<option value="">Fout bij laden resorts</option>');
                 });
             });
         });
