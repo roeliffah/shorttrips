@@ -66,8 +66,10 @@ add_action( 'wp_enqueue_scripts', 'freestays_enqueue_assets' );
  * @return array naam => code
  */
 function freestays_get_destination_map() {
+    error_log('freestays_get_destination_map wordt aangeroepen');
     $map = get_transient('freestays_destination_map');
     if ($map !== false && is_array($map)) {
+        error_log('Mapping uit cache gehaald, aantal: ' . count($map));
         return $map;
     }
 
@@ -75,6 +77,8 @@ function freestays_get_destination_map() {
     $api_user = $_ENV['API_USER'] ?? '';
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
+
+    error_log('API URL: ' . $api_url);
 
     $endpoint = rtrim($api_url, '/') . '/GetDestinations';
     $params = [
@@ -84,11 +88,12 @@ function freestays_get_destination_map() {
         'destinationCode'       => '',
         'sortBy'                => 'DestinationName',
         'sortOrder'             => 'asc',
-        'exactDestinationMatch' => 'false', // <-- toegevoegd!
+        'exactDestinationMatch' => 'false',
     ];
     $url = $endpoint . '?' . http_build_query($params);
 
-    // Vraag de bestemmingen op
+    error_log('GetDestinations URL: ' . $url);
+
     $response = wp_remote_get($url, [
         'timeout' => 30,
         'headers' => [
@@ -100,7 +105,7 @@ function freestays_get_destination_map() {
         return [];
     }
     $body = wp_remote_retrieve_body($response);
-    error_log('Sunhotels GetDestinations response: ' . substr($body, 0, 500)); // debugregel toevoegen
+    error_log('Sunhotels GetDestinations response: ' . substr($body, 0, 500));
     if (empty($body)) {
         error_log('Lege response van Sunhotels GetDestinations.');
         return [];
