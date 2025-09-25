@@ -140,6 +140,9 @@ function freestays_search_shortcode($atts) {
 
     $client = new Sunhotels_Client($api_url, $api_user, $api_pass);
 
+    // Mapping ophalen voor dropdown
+    $destination_map = freestays_get_destination_map();
+
     // Formulierwaarden ophalen of standaardwaarden instellen
     $destination = isset($_POST['freestays_destination']) ? sanitize_text_field($_POST['freestays_destination']) : '';
     $checkin     = isset($_POST['freestays_checkin']) ? sanitize_text_field($_POST['freestays_checkin']) : '';
@@ -156,19 +159,39 @@ function freestays_search_shortcode($atts) {
         }
     }
 
-    // Zoekformulier tonen
+    // Zoekformulier tonen, dynamisch dropdown
     $output = '<form method="post" class="freestays-search-form">';
-    // ...formuliervelden...
+    $output .= '<label for="freestays_destination">Bestemming:</label>';
+    $output .= '<select name="freestays_destination" id="freestays_destination" required>';
+    $output .= '<option value="">Kies bestemming</option>';
+    // Toon alleen unieke codes met hun naam
+    $unique = [];
+    foreach ($destination_map as $name => $code) {
+        if (!in_array($code, $unique)) {
+            $selected = ($destination === $code) ? ' selected' : '';
+            $output .= '<option value="' . esc_attr($code) . '"' . $selected . '>' . esc_html(ucfirst($name)) . '</option>';
+            $unique[] = $code;
+        }
+    }
+    $output .= '</select>';
+    // Voeg overige formuliervelden toe (voorbeeld)
+    $output .= '<label for="freestays_checkin">Check-in:</label>';
+    $output .= '<input type="date" name="freestays_checkin" id="freestays_checkin" value="' . esc_attr($checkin) . '" required>';
+    $output .= '<label for="freestays_checkout">Check-out:</label>';
+    $output .= '<input type="date" name="freestays_checkout" id="freestays_checkout" value="' . esc_attr($checkout) . '" required>';
+    $output .= '<label for="freestays_adults">Volwassenen:</label>';
+    $output .= '<input type="number" name="freestays_adults" id="freestays_adults" value="' . esc_attr($adults) . '" min="1" required>';
+    $output .= '<label for="freestays_children">Kinderen:</label>';
+    $output .= '<input type="number" name="freestays_children" id="freestays_children" value="' . esc_attr($children) . '" min="0">';
+    $output .= '<label for="freestays_rooms">Kamers:</label>';
+    $output .= '<input type="number" name="freestays_rooms" id="freestays_rooms" value="' . esc_attr($rooms) . '" min="1" required>';
+    $output .= '<button type="submit">Zoeken</button>';
     $output .= '</form>';
 
     // Resultaten tonen als er gezocht is
     if (!empty($destination) && !empty($checkin) && !empty($checkout)) {
-        // --- Mapping van naam naar IATA-code ---
-        $destination_map = freestays_get_destination_map();
-        $destination_input = strtolower(trim($destination));
-        $destination_id = $destination_map[$destination_input] ?? $destination_input;
+        $destination_id = $destination; // dropdown value is altijd de code
 
-        // Roep de Sunhotels API aan via je client
         try {
             $hotels = $client->searchHotels(
                 $destination_id,
