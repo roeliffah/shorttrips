@@ -6,7 +6,6 @@
  * Author: Freestays
  */
 
-// Direct access voorkomen
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 // Composer autoloader
@@ -19,12 +18,7 @@ define( 'FREESTAYS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FREESTAYS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 // Vereiste bestanden laden
-require_once FREESTAYS_PLUGIN_DIR . 'includes/api/class-freestays-api.php';
 require_once FREESTAYS_PLUGIN_DIR . 'includes/api/class-sunhotels-client.php';
-require_once FREESTAYS_PLUGIN_DIR . 'includes/class-booking-handler.php';
-require_once FREESTAYS_PLUGIN_DIR . 'includes/class-shortcodes.php';
-require_once FREESTAYS_PLUGIN_DIR . 'includes/class-admin-settings.php';
-require_once FREESTAYS_PLUGIN_DIR . 'includes/helpers.php';
 
 // .env laden indien aanwezig
 if ( file_exists( dirname( __DIR__, 3 ) . '/config/.env' ) ) {
@@ -32,36 +26,7 @@ if ( file_exists( dirname( __DIR__, 3 ) . '/config/.env' ) ) {
     $dotenv->load();
 }
 
-// Plugin activatie
-function freestays_booking_activate() {
-    // Eventuele activatiecode
-}
-register_activation_hook( __FILE__, 'freestays_booking_activate' );
-
-// Plugin deactivatie
-function freestays_booking_deactivate() {
-    // Eventuele deactivatiecode
-}
-register_deactivation_hook( __FILE__, 'freestays_booking_deactivate' );
-
-// Plugin initialisatie
-function freestays_booking_init() {
-    new Booking_Handler();
-    new Freestays_Booking_Shortcodes();
-    new Freestays_Admin_Settings();
-}
-add_action( 'plugins_loaded', 'freestays_booking_init' );
-
-// Assets laden
-function freestays_enqueue_assets() {
-    wp_enqueue_style( 'freestays-css', FREESTAYS_PLUGIN_URL . 'assets/css/freestays.css' );
-    wp_enqueue_script( 'freestays-js', FREESTAYS_PLUGIN_URL . 'assets/js/freestays.js', array( 'jquery' ), null, true );
-}
-add_action( 'wp_enqueue_scripts', 'freestays_enqueue_assets' );
-
-/**
- * Haal landen op via Sunhotels API.
- */
+// Landen ophalen via Sunhotels REST API
 function freestays_get_countries() {
     $countries = get_transient('freestays_countries');
     if ($countries !== false && is_array($countries)) {
@@ -73,25 +38,21 @@ function freestays_get_countries() {
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
-    // API-configuratie check
     if (empty($api_url) || empty($api_user) || empty($api_pass)) {
         error_log('API config ontbreekt!');
         return [];
     }
 
-    $endpoint = rtrim($api_url, '/') . '/GetCountries';
     $params = [
+        'method'   => 'GetCountries',
         'userName' => $api_user,
         'password' => $api_pass,
         'language' => $language,
     ];
-    $url = $endpoint . '?' . http_build_query($params);
 
-    $response = wp_remote_get($url, [
+    $response = wp_remote_post($api_url, [
+        'body'    => $params,
         'timeout' => 20,
-        'headers' => [
-            'Accept' => 'application/xml',
-        ],
     ]);
     if (is_wp_error($response)) {
         error_log('Sunhotels GetCountries error: ' . $response->get_error_message());
@@ -123,9 +84,7 @@ function freestays_get_countries() {
     return $countries;
 }
 
-/**
- * Haal steden op voor een land via Sunhotels API.
- */
+// Steden ophalen via Sunhotels REST API
 function freestays_get_cities($country_id) {
     if (empty($country_id)) return [];
     $cache_key = 'freestays_cities_' . $country_id;
@@ -139,26 +98,22 @@ function freestays_get_cities($country_id) {
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
-    // API-configuratie check
     if (empty($api_url) || empty($api_user) || empty($api_pass)) {
         error_log('API config ontbreekt!');
         return [];
     }
 
-    $endpoint = rtrim($api_url, '/') . '/GetCities';
     $params = [
+        'method'    => 'GetCities',
         'userName'  => $api_user,
         'password'  => $api_pass,
         'language'  => $language,
         'countryId' => $country_id,
     ];
-    $url = $endpoint . '?' . http_build_query($params);
 
-    $response = wp_remote_get($url, [
+    $response = wp_remote_post($api_url, [
+        'body'    => $params,
         'timeout' => 20,
-        'headers' => [
-            'Accept' => 'application/xml',
-        ],
     ]);
     if (is_wp_error($response)) {
         error_log('Sunhotels GetCities error: ' . $response->get_error_message());
@@ -190,9 +145,7 @@ function freestays_get_cities($country_id) {
     return $cities;
 }
 
-/**
- * Haal resorts op voor een stad via Sunhotels API.
- */
+// Resorts ophalen via Sunhotels REST API
 function freestays_get_resorts($city_id) {
     if (empty($city_id)) return [];
     $cache_key = 'freestays_resorts_' . $city_id;
@@ -206,26 +159,22 @@ function freestays_get_resorts($city_id) {
     $api_pass = $_ENV['API_PASS'] ?? '';
     $language = 'en';
 
-    // API-configuratie check
     if (empty($api_url) || empty($api_user) || empty($api_pass)) {
         error_log('API config ontbreekt!');
         return [];
     }
 
-    $endpoint = rtrim($api_url, '/') . '/GetResorts';
     $params = [
+        'method'   => 'GetResorts',
         'userName' => $api_user,
         'password' => $api_pass,
         'language' => $language,
         'cityId'   => $city_id,
     ];
-    $url = $endpoint . '?' . http_build_query($params);
 
-    $response = wp_remote_get($url, [
+    $response = wp_remote_post($api_url, [
+        'body'    => $params,
         'timeout' => 20,
-        'headers' => [
-            'Accept' => 'application/xml',
-        ],
     ]);
     if (is_wp_error($response)) {
         error_log('Sunhotels GetResorts error: ' . $response->get_error_message());
@@ -257,12 +206,8 @@ function freestays_get_resorts($city_id) {
     return $resorts;
 }
 
-/**
- * Shortcode handler: zoekformulier met vrij zoekveld en dropdowns.
- * - Werkt met POST en laadt steden/resorts opnieuw bij selectie (via AJAX).
- */
+// Shortcode handler (voorbeeld, alleen relevante searchHotels-aanroep)
 function freestays_search_shortcode($atts) {
-    // Ophalen van landen, steden, resorts op basis van POST of default
     $countries = freestays_get_countries();
     $country_id = isset($_POST['freestays_country']) ? sanitize_text_field($_POST['freestays_country']) : '';
     $cities = $country_id ? freestays_get_cities($country_id) : [];
@@ -277,7 +222,13 @@ function freestays_search_shortcode($atts) {
     $children     = isset($_POST['freestays_children']) ? intval($_POST['freestays_children']) : 0;
     $rooms        = isset($_POST['freestays_rooms']) ? intval($_POST['freestays_rooms']) : 1;
 
-    // Formulier opbouwen
+    $child_ages = [];
+    if ($children > 0) {
+        for ($i = 1; $i <= $children; $i++) {
+            $child_ages[] = isset($_POST["freestays_child_age_$i"]) ? intval($_POST["freestays_child_age_$i"]) : 0;
+        }
+    }
+
     $output = '<form method="post" class="freestays-search-form">';
     // Vrij zoekveld
     $output .= '<label for="freestays_search">Zoek op hotel, regio of land:</label>';
@@ -323,22 +274,14 @@ function freestays_search_shortcode($atts) {
     $output .= '<button type="submit">Zoeken</button>';
     $output .= '</form>';
 
-    // Resultaten tonen als er gezocht is
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
         $client = new Sunhotels_Client($_ENV['API_URL'], $_ENV['API_USER'], $_ENV['API_PASS']);
         try {
-            $child_ages = [];
-            if ($children > 0) {
-                for ($i = 1; $i <= $children; $i++) {
-                    $child_ages[] = isset($_POST["freestays_child_age_$i"]) ? intval($_POST["freestays_child_age_$i"]) : 0;
-                }
-            }
-
             $hotels = $client->searchHotels(
                 $country_id,
                 $city_id,
                 $resort_id,
-                $search_query,
+                $search_query, // destinationId of zoekterm
                 $checkin,
                 $checkout,
                 $adults,
