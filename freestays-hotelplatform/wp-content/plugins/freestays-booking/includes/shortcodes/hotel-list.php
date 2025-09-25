@@ -12,7 +12,7 @@ function freestays_hotel_list_shortcode($atts) {
     $apiUrl  = getenv('API_URL');
     $apiUser = getenv('API_USER');
     $apiPass = getenv('API_PASS');
-    require_once plugin_dir_path(__DIR__) . '../api/class-sunhotels-client.php';
+    require_once dirname(__DIR__) . '/api/class-sunhotels-client.php';
     $client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass);
 
     try {
