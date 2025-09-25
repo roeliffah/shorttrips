@@ -362,3 +362,16 @@ add_action('wp_enqueue_scripts', function() {
         'ajax_url' => admin_url('admin-ajax.php'),
     ));
 });
+
+/**
+ * CSS styles toevoegen
+ */
+function freestays_enqueue_styles() {
+    wp_enqueue_style(
+        'freestays-css',
+        plugins_url('assets/css/freestays.css', __FILE__),
+        array(),
+        filemtime(plugin_dir_path(__FILE__) . 'assets/css/freestays.css')
+    );
+}
+add_action('wp_enqueue_scripts', 'freestays_enqueue_styles');

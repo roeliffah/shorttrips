@@ -15,69 +15,68 @@ try {
 }
 ?>
 <form method="post" class="freestays-search-form">
-    <label for="freestays_search">Zoek op hotel, regio of land:</label>
-    <input type="text" name="freestays_search" id="freestays_search" value="" placeholder="Bijv. Alanya, Turkije, Hotelnaam">
-
-    <label for="freestays_country">Land:</label>
-    <select name="freestays_country" id="freestays_country">
-        <option value="">Kies land</option>
-        <?php foreach ($destinations as $dest): ?>
-            <option value="<?php echo esc_attr($dest['id']); ?>">
-                <?php echo esc_html($dest['name']); ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-
-    <div class="form-group">
-        <label for="checkin">Check-in Date:</label>
-        <input type="date" id="checkin" name="checkin" required>
+    <div class="fs-search-row">
+        <div class="form-group" style="flex:2">
+            <label for="freestays_search">Bestemming of hotel</label>
+            <input type="text" name="freestays_search" id="freestays_search" value="<?php echo esc_attr($search_query ?? ''); ?>" placeholder="Bijv. Amsterdam, Spanje, Hotelnaam">
+        </div>
+        <div class="form-group">
+            <label for="freestays_country">Land</label>
+            <select name="freestays_country" id="freestays_country">
+                <option value="">Kies land</option>
+                <?php foreach ($countries ?? [] as $country): ?>
+                    <option value="<?php echo esc_attr($country['id']); ?>"<?php if (($country_id ?? '') === $country['id']) echo ' selected'; ?>>
+                        <?php echo esc_html($country['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="freestays_city">Stad</label>
+            <select name="freestays_city" id="freestays_city">
+                <option value="">Kies stad</option>
+                <?php foreach ($cities ?? [] as $city): ?>
+                    <option value="<?php echo esc_attr($city['id']); ?>"<?php if (($city_id ?? '') === $city['id']) echo ' selected'; ?>>
+                        <?php echo esc_html($city['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="freestays_resort">Resort</label>
+            <select name="freestays_resort" id="freestays_resort">
+                <option value="">Kies resort (optioneel)</option>
+                <?php foreach ($resorts ?? [] as $resort): ?>
+                    <option value="<?php echo esc_attr($resort['id']); ?>"<?php if (($resort_id ?? '') === $resort['id']) echo ' selected'; ?>>
+                        <?php echo esc_html($resort['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="checkout">Check-out Date:</label>
-        <input type="date" id="checkout" name="checkout" required>
+    <div class="fs-search-row">
+        <div class="form-group">
+            <label for="freestays_checkin">Check-in</label>
+            <input type="date" name="freestays_checkin" id="freestays_checkin" value="<?php echo esc_attr($checkin ?? ''); ?>" required>
+        </div>
+        <div class="form-group">
+            <label for="freestays_checkout">Check-out</label>
+            <input type="date" name="freestays_checkout" id="freestays_checkout" value="<?php echo esc_attr($checkout ?? ''); ?>" required>
+        </div>
+        <div class="form-group">
+            <label for="freestays_adults">Volwassenen</label>
+            <input type="number" name="freestays_adults" id="freestays_adults" value="<?php echo esc_attr($adults ?? 2); ?>" min="1" required>
+        </div>
+        <div class="form-group">
+            <label for="freestays_children">Kinderen</label>
+            <input type="number" name="freestays_children" id="freestays_children" value="<?php echo esc_attr($children ?? 0); ?>" min="0">
+        </div>
+        <div class="form-group">
+            <label for="freestays_rooms">Kamers</label>
+            <input type="number" name="freestays_rooms" id="freestays_rooms" value="<?php echo esc_attr($rooms ?? 1); ?>" min="1" required>
+        </div>
+        <div class="form-group" style="align-self: flex-end;">
+            <button type="submit" class="fs-btn fs-btn-primary">Zoeken</button>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="adults">Adults:</label>
-        <select id="adults" name="adults" required>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="children">Children:</label>
-        <select id="children" name="children">
-            <option value="0">0</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="rooms">Rooms:</label>
-        <select id="rooms" name="rooms" required>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="destination">Destination (vrij zoeken):</label>
-        <input type="text" id="destination" name="destination" placeholder="Enter destination">
-    </div>
-    <div class="form-group">
-        <label for="destination_id">Of kies uit de lijst:</label>
-        <select id="destination_id" name="destination_id">
-            <option value="">Kies een bestemming...</option>
-            <?php foreach ($destinations as $dest): ?>
-                <option value="<?php echo esc_attr($dest['id']); ?>">
-                    <?php echo esc_html($dest['name']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-    <button type="submit">Search Hotels</button>
 </form>
