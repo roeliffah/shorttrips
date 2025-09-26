@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
 
@@ -390,8 +389,12 @@ if ($action === 'quicksearch') {
     echo json_encode(['results' => $steden]);
     exit;
 } elseif ($action === 'destination-id' && isset($_GET['city'])) {
-    $city = $_GET['city'];
-    $stmt = $pdo->prepare("SELECT destination_id FROM bravo_hotels WHERE city = ? AND destination_id IS NOT NULL AND destination_id != 0 LIMIT 1");
+    $city = trim($_GET['city']);
+    if ($city === '') {
+        echo json_encode(['destination_id' => null, 'error' => 'Lege city-naam opgegeven']);
+        exit;
+    }
+    $stmt = $pdo->prepare("SELECT destination_id FROM bravo_destinations WHERE destination_name = ? AND destination_id IS NOT NULL AND destination_id != 0 LIMIT 1");
     $stmt->execute([$city]);
     $row = $stmt->fetch();
     echo json_encode(['destination_id' => $row ? $row['destination_id'] : null]);
