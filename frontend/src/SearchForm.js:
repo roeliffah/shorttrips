@@ -26,11 +26,11 @@ function SearchForm() {
     try {
       // Eerst destination_id ophalen
       const resId = await fetch(
-        `/bridge/api.php?action=destination-id&city=${encodeURIComponent(city)}&key=${process.env.REACT_APP_API_KEY || "hlIGzfFEk5Af0dWNZO4p"}`
+        `/bridge/api.php?action=destination-id&city=${encodeURIComponent(city)}`
       );
       const dataId = await resId.json();
       if (!dataId.destination_id) {
-        setError(`Geen destination_id gevonden voor "${city}".`);
+        setError("Geen destination_id gevonden");
         setLoading(false);
         return;
       }
@@ -44,7 +44,6 @@ function SearchForm() {
         children,
         rooms,
         destination_id: dataId.destination_id,
-        key: process.env.REACT_APP_API_KEY || "hlIGzfFEk5Af0dWNZO4p",
       });
       const resHotels = await fetch(`/bridge/api.php?${params.toString()}`);
       const dataHotels = await resHotels.json();
