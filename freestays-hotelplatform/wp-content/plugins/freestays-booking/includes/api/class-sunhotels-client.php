@@ -200,6 +200,7 @@ class Sunhotels_Client {
         }
 
         $body = wp_remote_retrieve_body($response);
+        error_log('GetDestinations response: ' . substr($body, 0, 1000));
         if (empty($body) || strpos(trim($body), '<') !== 0 || stripos($body, '<html') !== false) {
             return null;
         }
