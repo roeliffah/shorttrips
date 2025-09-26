@@ -9,11 +9,15 @@ function freestays_hotel_list_shortcode($atts) {
         'rooms' => 1,
     ], $atts);
 
-    $apiUrl  = getenv('API_URL');
-    $apiUser = getenv('API_USER');
-    $apiPass = getenv('API_PASS');
+    $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+    $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+    $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+    // Eventueel debuggen:
+    error_log('API_URL: ' . ($api_url ?: 'NIET GEZET'));
+
     require_once dirname(__DIR__) . '/api/class-sunhotels-client.php';
-    $client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass);
+    $client = new Sunhotels_Client($api_url, $api_user, $api_pass);
 
     try {
         $hotels = $client->searchHotels(

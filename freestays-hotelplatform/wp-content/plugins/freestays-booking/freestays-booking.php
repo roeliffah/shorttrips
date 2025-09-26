@@ -32,9 +32,9 @@ function freestays_get_countries() {
         return $countries;
     }
 
-    $api_url  = $_ENV['API_URL'] ?? '';
-    $api_user = $_ENV['API_USER'] ?? '';
-    $api_pass = $_ENV['API_PASS'] ?? '';
+    $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+    $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+    $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
     $language = 'en';
 
     if (empty($api_url) || empty($api_user) || empty($api_pass)) {
@@ -92,9 +92,9 @@ function freestays_get_cities($country_id) {
         return $cities;
     }
 
-    $api_url  = $_ENV['API_URL'] ?? '';
-    $api_user = $_ENV['API_USER'] ?? '';
-    $api_pass = $_ENV['API_PASS'] ?? '';
+    $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+    $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+    $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
     $language = 'en';
 
     if (empty($api_url) || empty($api_user) || empty($api_pass)) {
@@ -153,9 +153,9 @@ function freestays_get_resorts($city_id) {
         return $resorts;
     }
 
-    $api_url  = $_ENV['API_URL'] ?? '';
-    $api_user = $_ENV['API_USER'] ?? '';
-    $api_pass = $_ENV['API_PASS'] ?? '';
+    $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+    $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+    $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
     $language = 'en';
 
     if (empty($api_url) || empty($api_user) || empty($api_pass)) {

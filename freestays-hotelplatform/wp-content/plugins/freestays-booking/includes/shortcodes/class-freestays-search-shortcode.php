@@ -132,14 +132,18 @@ class Freestays_Search_Shortcode {
         }
 
         // Haal credentials uit je config/.env
-        $apiUrl         = getenv('API_URL');
-        $apiUser        = getenv('API_USER');
-        $apiPass        = getenv('API_PASS');
+        $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+        $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+        $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+        // Eventueel debuggen:
+        error_log('API_URL: ' . ($api_url ?: 'NIET GEZET'));
+
         $language       = 'nl';
         $currency       = 'EUR';
         $customerCountry = 'NL';
 
-        $client = new Sunhotels_Client($apiUrl, $apiUser, $apiPass, $language, $currency, $customerCountry);
+        $client = new Sunhotels_Client($api_url, $api_user, $api_pass, $language, $currency, $customerCountry);
 
         try {
             $hotels = $client->searchHotels(

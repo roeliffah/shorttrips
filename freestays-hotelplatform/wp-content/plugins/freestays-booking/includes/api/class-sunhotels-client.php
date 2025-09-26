@@ -1,5 +1,10 @@
 <?php
-error_log('API_URL: ' . getenv('API_URL'));
+$api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+$api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+$api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+// Eventueel debuggen:
+error_log('API_URL: ' . ($api_url ?: 'NIET GEZET'));
 
 class Sunhotels_Client {
     private $apiUrl;
