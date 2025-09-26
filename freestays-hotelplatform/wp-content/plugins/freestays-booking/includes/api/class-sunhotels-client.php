@@ -40,8 +40,15 @@ class Sunhotels_Client {
         $themeIds = '',
         $totalRoomsInBatch = ''
     ) {
-        // Bepaal destinationID (gebruik $destination_id als zoekterm, anders city/resort/country)
+        // Dynamisch destinationID bepalen
         $destinationID = $destination_id ?: ($resort_id ?: ($city_id ?: $country_id));
+        if (empty($destinationID) || !is_numeric($destinationID)) {
+            // Dynamisch ophalen op basis van een zoeknaam, bijvoorbeeld "Turkije"
+            $destinationID = $this->getDestinationIdByName('Turkije');
+            if (empty($destinationID)) {
+                throw new Exception('Geen geldige destinationID gevonden voor zoeknaam "Turkije".');
+            }
+        }
 
         // Bouw de SOAP XML body
         $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
@@ -156,4 +163,67 @@ class Sunhotels_Client {
 
         return $hotels;
     }
+
+    /**
+     * Haal een geldige destinationID op aan de hand van een naam (bijv. "Turkije" of "Antalya")
+     * Retourneert de eerste matchende destinationID of null.
+     */
+    public function getDestinationIdByName($searchName) {
+        $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            . '<soap:Body>'
+            . '<GetDestinations xmlns="http://xml.sunhotels.net/15/">'
+            . '<userName>' . esc_html($this->api_user) . '</userName>'
+            . '<password>' . esc_html($this->api_pass) . '</password>'
+            . '<language>en</language>'
+            . '</GetDestinations>'
+            . '</soap:Body>'
+            . '</soap:Envelope>';
+
+        $response = wp_remote_post($this->api_url, [
+            'body'    => $soap_body,
+            'headers' => [
+                'Content-Type' => 'text/xml; charset=utf-8',
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/GetDestinations'
+            ],
+            'timeout' => 30,
+        ]);
+
+        if (is_wp_error($response)) {
+            return null;
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body) || strpos(trim($body), '<') !== 0 || stripos($body, '<html') !== false) {
+            return null;
+        }
+
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            return null;
+        }
+
+        $result = $xml->xpath('//GetDestinationsResult');
+        if (!$result || !isset($result[0])) {
+            return null;
+        }
+
+        $destinations_xml = simplexml_load_string($result[0], 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($destinations_xml === false) {
+            return null;
+        }
+
+        // Zoek naar een destination met een naam die overeenkomt met $searchName (case-insensitive)
+        foreach ($destinations_xml->destinations->destination as $destination) {
+            if (stripos((string)$destination->name, $searchName) !== false) {
+                return (int)$destination->id;
+            }
+        }
+
+        return null;
+    }
+
+    // ...bestaande code...
 }
