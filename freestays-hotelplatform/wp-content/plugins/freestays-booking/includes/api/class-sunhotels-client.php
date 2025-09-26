@@ -110,13 +110,18 @@ class Sunhotels_Client {
         error_log('Sunhotels SOAP SearchHotels body: ' . $soap_body);
 
         $response = wp_remote_post($this->api_url, [
-            'body'    => $soap_body,
+            'timeout' => 30,
             'headers' => [
                 'Content-Type' => 'text/xml; charset=utf-8',
-                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchHotels'
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchHotels', // of andere actie
             ],
-            'timeout' => 30,
+            'body' => $soap_body,
         ]);
+
+        // Log de volledige response voor debuggen
+        if (defined('DEBUG_MODE') && DEBUG_MODE) {
+            error_log('Sunhotels API response: ' . print_r($response, true));
+        }
 
         if (is_wp_error($response)) {
             throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
