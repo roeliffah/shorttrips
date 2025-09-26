@@ -83,14 +83,12 @@ class Sunhotels_Client {
         }
 
         $body = wp_remote_retrieve_body($response);
-        if (empty($body) || strpos(trim($body), '<') !== 0) {
-            throw new Exception('Lege of ongeldige response van Sunhotels: ' . $body);
+
+        // Controle: is het wel XML?
+        if (empty($body) || strpos(trim($body), '<') !== 0 || stripos($body, '<html') !== false) {
+            throw new Exception('Ongeldige of lege response van Sunhotels: ' . substr($body, 0, 500));
         }
 
-        // Debug: log response
-        error_log('Sunhotels SearchHotels response: ' . substr($body, 0, 500));
-
-        // Parse XML naar array of object
         $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
         if ($xml === false) {
             throw new Exception('Ongeldige XML van Sunhotels.');
