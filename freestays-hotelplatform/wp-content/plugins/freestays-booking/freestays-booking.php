@@ -383,7 +383,7 @@ add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
 
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/hotel-list.php';
 
-<?php
+// Test Sunhotels API shortcode
 function freestays_test_sunhotels_api() {
     $api_url  = $_ENV['API_URL'] ?? '';
     $api_user = $_ENV['API_USER'] ?? '';
