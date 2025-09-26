@@ -230,5 +230,457 @@ class Sunhotels_Client {
         return null;
     }
 
-    // ...bestaande code...
+    /**
+     * Haal een destinationID op aan de hand van een stadsnaam via de Bridge API
+     * Retourneert de destinationID of null bij fout.
+     */
+    public function getDestinationIdByCity($cityName) {
+        $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? 'https://www.freestays.eu/api.php';
+        $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? ''; // Gebruik DB_PASS als key
+
+        $url = $bridge_url . '?action=destination-id&city=' . urlencode($cityName) . '&key=' . urlencode($bridge_key);
+
+        $response = wp_remote_get($url, [
+            'timeout' => 10,
+        ]);
+
+        if (is_wp_error($response)) {
+            error_log('Bridge API error: ' . $response->get_error_message());
+            return null;
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (isset($data['destination_id']) && $data['destination_id']) {
+            return (int)$data['destination_id'];
+        }
+        return null;
+    }
+
+    /**
+     * Zoek hotels op basis van plaatsnaam via de Bridge API en Sunhotels API
+     */
+    public function zoekHotelsOpPlaats($plaatsnaam, $checkin, $checkout, $aantalVolwassenen = 2, $aantalKinderen = 0, $kamers = 1) {
+        // Stap 1: Haal destination_id op via de bridge
+        $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+        $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+        $lookup_url = $bridge_url . '?action=destination-id&city=' . urlencode($plaatsnaam) . '&key=' . urlencode($bridge_key);
+
+        $response = wp_remote_get($lookup_url, ['timeout' => 10]);
+        if (is_wp_error($response)) {
+            return ['error' => 'Bridge lookup mislukt: ' . $response->get_error_message()];
+        }
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (empty($data['destination_id'])) {
+            return ['error' => 'Geen destination_id gevonden voor deze plaats.'];
+        }
+        $destination_id = (int)$data['destination_id'];
+
+        // Stap 2: Vraag actuele beschikbaarheid op bij Sunhotels
+        $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+        $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+        $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+        $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            . '<soap:Body>'
+            . '<SearchV3 xmlns="http://xml.sunhotels.net/15/">'
+            . '<userName>' . esc_html($api_user) . '</userName>'
+            . '<password>' . esc_html($api_pass) . '</password>'
+            . '<language>EN</language>'
+            . '<currencies>EUR</currencies>'
+            . '<searchV3Request>'
+            . '<checkInDate>' . esc_html($checkin) . '</checkInDate>'
+            . '<checkOutDate>' . esc_html($checkout) . '</checkOutDate>'
+            . '<numberOfRooms>' . intval($kamers) . '</numberOfRooms>'
+            . '<destinationID>' . intval($destination_id) . '</destinationID>'
+            . '<blockSuperdeal>ja</blockSuperdeal>'
+            . '<paxRooms>'
+            . str_repeat('<paxRoom><numberOfAdults>' . intval($aantalVolwassenen) . '</numberOfAdults><numberOfChildren>' . intval($aantalKinderen) . '</numberOfChildren></paxRoom>', $kamers)
+            . '</paxRooms>'
+            . '</searchV3Request>'
+            . '</SearchV3>'
+            . '</soap:Body>'
+            . '</soap:Envelope>';
+
+        $response = wp_remote_post($api_url, [
+            'body'    => $soap_body,
+            'headers' => [
+                'Content-Type' => 'text/xml; charset=utf-8',
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchV3'
+            ],
+            'timeout' => 30,
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['error' => 'Sunhotels API error: ' . $response->get_error_message()];
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body) || strpos(trim($body), '<') !== 0) {
+            return ['error' => 'Lege of ongeldige Sunhotels response.'];
+        }
+
+        // Parse de XML response (voorbeeld: alleen hotelnamen en prijzen)
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            return ['error' => 'Kon Sunhotels XML niet parsen.'];
+        }
+
+        $hotels = [];
+        $result = $xml->xpath('//hotel');
+        foreach ($result as $hotel) {
+            $hotels[] = [
+                'id'    => (string)($hotel['id'] ?? ''),
+                'naam'  => (string)($hotel->name ?? ''),
+                'stad'  => (string)($hotel->city ?? ''),
+                'prijs' => (string)($hotel->rooms->room->price->total ?? ''),
+                'valuta' => (string)($hotel->rooms->room->price->currency ?? ''),
+            ];
+        }
+
+        return [
+            'destination_id' => $destination_id,
+            'aantal_hotels' => count($hotels),
+            'hotels' => $hotels,
+        ];
+    }
+
+    /**
+     * Zoek hotels op basis van hotelnaam via de Bridge API en Sunhotels API,
+     * met fallback naar statische hotels als er geen actuele beschikbaarheid is.
+     */
+    public function zoekHotelsOpHotelnaam($hotelnaam, $checkin, $checkout, $aantalVolwassenen = 2, $aantalKinderen = 0, $kamers = 1) {
+        // Stap 1: Haal hotel_id op via de bridge
+        $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+        $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+        $lookup_url = $bridge_url . '?action=hotel-id&hotel=' . urlencode($hotelnaam) . '&key=' . urlencode($bridge_key);
+
+        $response = wp_remote_get($lookup_url, ['timeout' => 10]);
+        if (is_wp_error($response)) {
+            return ['error' => 'Bridge lookup mislukt: ' . $response->get_error_message()];
+        }
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (empty($data['hotel_id'])) {
+            return ['error' => 'Geen hotel_id gevonden voor deze hotelnaam.'];
+        }
+        $hotel_id = (int)$data['hotel_id'];
+
+        // Stap 2: Vraag actuele beschikbaarheid op bij Sunhotels
+        $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+        $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+        $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+        $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            . '<soap:Body>'
+            . '<SearchV3 xmlns="http://xml.sunhotels.net/15/">'
+            . '<userName>' . esc_html($api_user) . '</userName>'
+            . '<password>' . esc_html($api_pass) . '</password>'
+            . '<language>EN</language>'
+            . '<currencies>EUR</currencies>'
+            . '<searchV3Request>'
+            . '<checkInDate>' . esc_html($checkin) . '</checkInDate>'
+            . '<checkOutDate>' . esc_html($checkout) . '</checkOutDate>'
+            . '<numberOfRooms>' . intval($kamers) . '</numberOfRooms>'
+            . '<hotelIDs>' . intval($hotel_id) . '</hotelIDs>'
+            . '<blockSuperdeal>ja</blockSuperdeal>'
+            . '<paxRooms>'
+            . str_repeat('<paxRoom><numberOfAdults>' . intval($aantalVolwassenen) . '</numberOfAdults><numberOfChildren>' . intval($aantalKinderen) . '</numberOfChildren></paxRoom>', $kamers)
+            . '</paxRooms>'
+            . '</searchV3Request>'
+            . '</SearchV3>'
+            . '</soap:Body>'
+            . '</soap:Envelope>';
+
+        $response = wp_remote_post($api_url, [
+            'body'    => $soap_body,
+            'headers' => [
+                'Content-Type' => 'text/xml; charset=utf-8',
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchV3'
+            ],
+            'timeout' => 30,
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['error' => 'Sunhotels API error: ' . $response->get_error_message()];
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body) || strpos(trim($body), '<') !== 0) {
+            return ['error' => 'Lege of ongeldige Sunhotels response.'];
+        }
+
+        // Parse de XML response
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            return ['error' => 'Kon Sunhotels XML niet parsen.'];
+        }
+
+        $hotels = [];
+        $result = $xml->xpath('//hotel');
+        foreach ($result as $hotel) {
+            $hotels[] = [
+                'id'    => (string)($hotel['id'] ?? ''),
+                'naam'  => (string)($hotel->name ?? ''),
+                'stad'  => (string)($hotel->city ?? ''),
+                'prijs' => (string)($hotel->rooms->room->price->total ?? ''),
+                'valuta' => (string)($hotel->rooms->room->price->currency ?? ''),
+            ];
+        }
+
+        // Fallback: als geen actuele beschikbaarheid, haal statische hoteldata op via bridge
+        if (empty($hotels)) {
+            $static_url = $bridge_url . '?action=static-hotel&hotel_id=' . urlencode($hotel_id) . '&key=' . urlencode($bridge_key);
+            $response = wp_remote_get($static_url, ['timeout' => 10]);
+            if (!is_wp_error($response)) {
+                $body = wp_remote_retrieve_body($response);
+                $data = json_decode($body, true);
+                if (!empty($data['hotel'])) {
+                    $hotels[] = $data['hotel'];
+                }
+            }
+        }
+
+        return [
+            'hotel_id' => $hotel_id,
+            'aantal_hotels' => count($hotels),
+            'hotels' => $hotels,
+        ];
+    }
+
+    /**
+     * Zoek hotels op basis van resortnaam via de Bridge API en Sunhotels API,
+     * met fallback naar alternatieve resorts als er geen actuele beschikbaarheid is.
+     */
+    public function zoekHotelsOpResort($resortnaam, $checkin, $checkout, $aantalVolwassenen = 2, $aantalKinderen = 0, $kamers = 1) {
+        $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+        $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+        $lookup_url = $bridge_url . '?action=resort-id&resort=' . urlencode($resortnaam) . '&key=' . urlencode($bridge_key);
+
+        $response = wp_remote_get($lookup_url, ['timeout' => 10]);
+        if (is_wp_error($response)) {
+            return ['error' => 'Bridge lookup mislukt: ' . $response->get_error_message()];
+        }
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (empty($data['resort_id'])) {
+            // Fallback: alternatieve resorts zoeken via bridge
+            $alt_url = $bridge_url . '?action=resorts&query=' . urlencode($resortnaam) . '&key=' . urlencode($bridge_key);
+            $alt_response = wp_remote_get($alt_url, ['timeout' => 10]);
+            $alt_body = wp_remote_retrieve_body($alt_response);
+            $alt_data = json_decode($alt_body, true);
+            return [
+                'error' => 'Geen resort_id gevonden.',
+                'alternatieven' => $alt_data['results'] ?? []
+            ];
+        }
+        $resort_id = (int)$data['resort_id'];
+
+        // Sunhotels SearchV3-call
+        $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+        $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+        $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+        $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            . '<soap:Body>'
+            . '<SearchV3 xmlns="http://xml.sunhotels.net/15/">'
+            . '<userName>' . esc_html($api_user) . '</userName>'
+            . '<password>' . esc_html($api_pass) . '</password>'
+            . '<language>EN</language>'
+            . '<currencies>EUR</currencies>'
+            . '<searchV3Request>'
+            . '<checkInDate>' . esc_html($checkin) . '</checkInDate>'
+            . '<checkOutDate>' . esc_html($checkout) . '</checkOutDate>'
+            . '<numberOfRooms>' . intval($kamers) . '</numberOfRooms>'
+            . '<resortIDs>' . intval($resort_id) . '</resortIDs>'
+            . '<blockSuperdeal>ja</blockSuperdeal>'
+            . '<paxRooms>'
+            . str_repeat('<paxRoom><numberOfAdults>' . intval($aantalVolwassenen) . '</numberOfAdults><numberOfChildren>' . intval($aantalKinderen) . '</numberOfChildren></paxRoom>', $kamers)
+            . '</paxRooms>'
+            . '</searchV3Request>'
+            . '</SearchV3>'
+            . '</soap:Body>'
+            . '</soap:Envelope>';
+
+        $response = wp_remote_post($api_url, [
+            'body'    => $soap_body,
+            'headers' => [
+                'Content-Type' => 'text/xml; charset=utf-8',
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchV3'
+            ],
+            'timeout' => 30,
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['error' => 'Sunhotels API error: ' . $response->get_error_message()];
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body) || strpos(trim($body), '<') !== 0) {
+            return ['error' => 'Lege of ongeldige Sunhotels response.'];
+        }
+
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            return ['error' => 'Kon Sunhotels XML niet parsen.'];
+        }
+
+        $hotels = [];
+        $result = $xml->xpath('//hotel');
+        foreach ($result as $hotel) {
+            $hotels[] = [
+                'id'    => (string)($hotel['id'] ?? ''),
+                'naam'  => (string)($hotel->name ?? ''),
+                'stad'  => (string)($hotel->city ?? ''),
+                'prijs' => (string)($hotel->rooms->room->price->total ?? ''),
+                'valuta' => (string)($hotel->rooms->room->price->currency ?? ''),
+            ];
+        }
+
+        // Fallback: alternatieven als geen hotels gevonden
+        if (empty($hotels)) {
+            $alt_url = $bridge_url . '?action=resorts&query=' . urlencode($resortnaam) . '&key=' . urlencode($bridge_key);
+            $alt_response = wp_remote_get($alt_url, ['timeout' => 10]);
+            $alt_body = wp_remote_retrieve_body($alt_response);
+            $alt_data = json_decode($alt_body, true);
+            return [
+                'resort_id' => $resort_id,
+                'hotels' => [],
+                'alternatieven' => $alt_data['results'] ?? []
+            ];
+        }
+
+        return [
+            'resort_id' => $resort_id,
+            'aantal_hotels' => count($hotels),
+            'hotels' => $hotels,
+        ];
+    }
+
+    /**
+     * Zoek hotels op basis van land via de Bridge API en Sunhotels API,
+     * met fallback naar alternatieve landen als er geen actuele beschikbaarheid is.
+     */
+    public function zoekHotelsOpLand($landnaam, $checkin, $checkout, $aantalVolwassenen = 2, $aantalKinderen = 0, $kamers = 1) {
+        $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+        $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+        $lookup_url = $bridge_url . '?action=country-id&country=' . urlencode($landnaam) . '&key=' . urlencode($bridge_key);
+
+        $response = wp_remote_get($lookup_url, ['timeout' => 10]);
+        if (is_wp_error($response)) {
+            return ['error' => 'Bridge lookup mislukt: ' . $response->get_error_message()];
+        }
+        $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (empty($data['country_id'])) {
+            // Fallback: alternatieve landen zoeken via bridge
+            $alt_url = $bridge_url . '?action=countries&query=' . urlencode($landnaam) . '&key=' . urlencode($bridge_key);
+            $alt_response = wp_remote_get($alt_url, ['timeout' => 10]);
+            $alt_body = wp_remote_retrieve_body($alt_response);
+            $alt_data = json_decode($alt_body, true);
+            return [
+                'error' => 'Geen country_id gevonden.',
+                'alternatieven' => $alt_data['results'] ?? []
+            ];
+        }
+        $country_id = (int)$data['country_id'];
+
+        // Sunhotels SearchV3-call
+        $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+        $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+        $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+        $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            . '<soap:Body>'
+            . '<SearchV3 xmlns="http://xml.sunhotels.net/15/">'
+            . '<userName>' . esc_html($api_user) . '</userName>'
+            . '<password>' . esc_html($api_pass) . '</password>'
+            . '<language>EN</language>'
+            . '<currencies>EUR</currencies>'
+            . '<searchV3Request>'
+            . '<checkInDate>' . esc_html($checkin) . '</checkInDate>'
+            . '<checkOutDate>' . esc_html($checkout) . '</checkOutDate>'
+            . '<numberOfRooms>' . intval($kamers) . '</numberOfRooms>'
+            . '<countryIDs>' . intval($country_id) . '</countryIDs>'
+            . '<blockSuperdeal>ja</blockSuperdeal>'
+            . '<paxRooms>'
+            . str_repeat('<paxRoom><numberOfAdults>' . intval($aantalVolwassenen) . '</numberOfAdults><numberOfChildren>' . intval($aantalKinderen) . '</numberOfChildren></paxRoom>', $kamers)
+            . '</paxRooms>'
+            . '</searchV3Request>'
+            . '</SearchV3>'
+            . '</soap:Body>'
+            . '</soap:Envelope>';
+
+        $response = wp_remote_post($api_url, [
+            'body'    => $soap_body,
+            'headers' => [
+                'Content-Type' => 'text/xml; charset=utf-8',
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchV3'
+            ],
+            'timeout' => 30,
+        ]);
+
+        if (is_wp_error($response)) {
+            return ['error' => 'Sunhotels API error: ' . $response->get_error_message()];
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        if (empty($body) || strpos(trim($body), '<') !== 0) {
+            return ['error' => 'Lege of ongeldige Sunhotels response.'];
+        }
+
+        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($xml === false) {
+            return ['error' => 'Kon Sunhotels XML niet parsen.'];
+        }
+
+        $hotels = [];
+        $result = $xml->xpath('//hotel');
+        foreach ($result as $hotel) {
+            $hotels[] = [
+                'id'    => (string)($hotel['id'] ?? ''),
+                'naam'  => (string)($hotel->name ?? ''),
+                'stad'  => (string)($hotel->city ?? ''),
+                'prijs' => (string)($hotel->rooms->room->price->total ?? ''),
+                'valuta' => (string)($hotel->rooms->room->price->currency ?? ''),
+            ];
+        }
+
+        // Fallback: alternatieven als geen hotels gevonden
+        if (empty($hotels)) {
+            $alt_url = $bridge_url . '?action=countries&query=' . urlencode($landnaam) . '&key=' . urlencode($bridge_key);
+            $alt_response = wp_remote_get($alt_url, ['timeout' => 10]);
+            $alt_body = wp_remote_retrieve_body($alt_response);
+            $alt_data = json_decode($alt_body, true);
+            return [
+                'country_id' => $country_id,
+                'hotels' => [],
+                'alternatieven' => $alt_data['results'] ?? []
+            ];
+        }
+
+        return [
+            'country_id' => $country_id,
+            'aantal_hotels' => count($hotels),
+            'hotels' => $hotels,
+        ];
+    }
 }
