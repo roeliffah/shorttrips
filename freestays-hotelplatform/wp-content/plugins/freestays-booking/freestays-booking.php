@@ -382,3 +382,37 @@ function freestays_enqueue_assets() {
 add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
 
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/hotel-list.php';
+
+<?php
+function freestays_test_sunhotels_api() {
+    $api_url  = $_ENV['API_URL'] ?? '';
+    $api_user = $_ENV['API_USER'] ?? '';
+    $api_pass = $_ENV['API_PASS'] ?? '';
+
+    if (empty($api_url) || empty($api_user) || empty($api_pass)) {
+        return '<div style="color:red;">API config ontbreekt!</div>';
+    }
+
+    $params = [
+        'method'   => 'GetDestinations',
+        'userName' => $api_user,
+        'password' => $api_pass,
+        'language' => 'en',
+    ];
+
+    $response = wp_remote_post($api_url, [
+        'body'    => $params,
+        'timeout' => 20,
+    ]);
+    if (is_wp_error($response)) {
+        return '<div style="color:red;">API niet bereikbaar: ' . esc_html($response->get_error_message()) . '</div>';
+    }
+    $body = wp_remote_retrieve_body($response);
+    if (empty($body) || strpos(trim($body), '<') !== 0) {
+        return '<div style="color:red;">Lege of ongeldige response van Sunhotels: ' . esc_html($body) . '</div>';
+    }
+
+    // Toon de eerste 500 tekens van de response als debug
+    return '<pre>' . esc_html(substr($body, 0, 500)) . '</pre>';
+}
+add_shortcode('freestays_test_api', 'freestays_test_sunhotels_api');
