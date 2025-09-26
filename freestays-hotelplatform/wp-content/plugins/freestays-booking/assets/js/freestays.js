@@ -1,5 +1,8 @@
 // JavaScript functionality for the Freestays hotel booking platform
 
+console.log('freestays.js geladen');
+console.log('freestays-ajax.js geladen');
+
 document.addEventListener('DOMContentLoaded', function() {
     // Booking form submit
     const bookingForm = document.getElementById('booking-form');
@@ -80,16 +83,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!hotelList) return;
         hotelList.innerHTML = '';
 
-        hotels.forEach(hotel => {
-            const hotelItem = document.createElement('div');
-            hotelItem.className = 'hotel-item';
-            hotelItem.innerHTML = `
+        hotelList.innerHTML = hotels.map(hotel => `
+            <div class="fs-hotel-card">
                 <h3>${hotel.name}</h3>
-                <p>${hotel.city}, ${hotel.country}</p>
-                <p>Price: ${hotel.price_total} ${hotel.currency}</p>
-                <a href="/hotel/${hotel.hotel_id}" class="btn">View Details</a>
-            `;
-            hotelList.appendChild(hotelItem);
-        });
+                <p>${hotel.address}, ${hotel.city}</p>
+                <p>Sterren: ${hotel.classification}</p>
+                <p>Thema's: ${hotel.themes}</p>
+                <p>Prijs: ${hotel.price}</p>
+            </div>
+        `).join('');
     }
 });

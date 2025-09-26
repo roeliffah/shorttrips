@@ -7,47 +7,73 @@ $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
 error_log('API_URL: ' . ($api_url ?: 'NIET GEZET'));
 
 class Sunhotels_Client {
-    private $apiUrl;
-    private $apiUser;
-    private $apiPass;
-    private $language;
-    private $currency;
-    private $customerCountry;
+    private $api_url;
+    private $api_user;
+    private $api_pass;
 
-    public function __construct($apiUrl, $apiUser, $apiPass, $language = 'en', $currency = 'EUR', $customerCountry = 'NL') {
-        $this->apiUrl         = rtrim($apiUrl, '/');
-        $this->apiUser        = $apiUser;
-        $this->apiPass        = $apiPass;
-        $this->language       = $language;
-        $this->currency       = $currency;
-        $this->customerCountry = $customerCountry;
+    public function __construct($api_url, $api_user, $api_pass) {
+        $this->api_url  = $api_url;
+        $this->api_user = $api_user;
+        $this->api_pass = $api_pass;
     }
 
     /**
-     * Zoek hotels via de Sunhotels API SearchV2 (NonStatic).
+     * Zoek hotels via Sunhotels API
      */
-    public function searchHotels($country_id, $city_id, $resort_id, $destination_id, $checkin, $checkout, $adults, $children, $rooms, $child_ages = [], $infant = 0) {
-        if (!is_array($child_ages)) {
-            $child_ages = [];
-        }
-        $childrenAges = ($children > 0 && !empty($child_ages)) ? implode(',', $child_ages) : '';
+    public function searchHotels(
+        $country_id,
+        $city_id,
+        $resort_id,
+        $destination_id,
+        $checkin,
+        $checkout,
+        $adults,
+        $children,
+        $rooms,
+        $child_ages = [],
+        $mealIds = '',
+        $showReviews = false,
+        $minStarRating = '',
+        $maxStarRating = '',
+        $featureIds = '',
+        $minPrice = '',
+        $themeIds = '',
+        $totalRoomsInBatch = ''
+    ) {
+        // Bepaal destinationID (gebruik $destination_id als zoekterm, anders city/resort/country)
+        $destinationID = $destination_id ?: ($resort_id ?: ($city_id ?: $country_id));
 
         $params = [
-            'method'        => 'SearchHotels',
-            'userName'      => $this->apiUser,
-            'password'      => $this->apiPass,
-            'language'      => $this->language,
-            'currency'      => $this->currency,
-            'destinationId' => $destination_id,
-            'checkIn'       => $checkin,
-            'checkOut'      => $checkout,
-            'adults'        => $adults,
-            'children'      => $children,
-            'rooms'         => $rooms,
-            'childrenAges'  => $childrenAges,
+            'userName'           => $this->api_user,
+            'password'           => $this->api_pass,
+            'language'           => 'en',
+            'currencies'         => 'EUR',
+            'checkInDate'        => $checkin,         // formaat: YYYY-MM-DD
+            'checkOutDate'       => $checkout,        // formaat: YYYY-MM-DD
+            'numberOfRooms'      => $rooms,
+            'destinationID'      => $destinationID,
+            'numberOfAdults'     => $adults,
+            'numberOfChildren'   => $children,
+            'childrenAges'       => $children > 0 ? implode(',', $child_ages) : '',
+            'resortIDs'          => $resort_id ? $resort_id : '',
+            // Toegevoegde velden:
+            'mealIds'            => $mealIds,
+            'showReviews'        => $showReviews ? 'true' : 'false',
+            'minStarRating'      => $minStarRating,
+            'maxStarRating'      => $maxStarRating,
+            'featureIds'         => $featureIds,
+            'minPrice'           => $minPrice,
+            'themeIds'           => $themeIds,
+            'totalRoomsInBatch'  => $totalRoomsInBatch,
         ];
 
-        $response = wp_remote_post($this->apiUrl, [
+        // Filter lege waarden eruit
+        $params = array_filter($params, function($v) { return $v !== null && $v !== ''; });
+
+        // Debug: log request
+        error_log('Sunhotels SearchHotels params: ' . print_r($params, true));
+
+        $response = wp_remote_post($this->api_url, [
             'body'    => $params,
             'timeout' => 30,
         ]);
@@ -57,274 +83,38 @@ class Sunhotels_Client {
         }
 
         $body = wp_remote_retrieve_body($response);
+        if (empty($body) || strpos(trim($body), '<') !== 0) {
+            throw new Exception('Lege of ongeldige response van Sunhotels: ' . $body);
+        }
 
-        // Vervang niet-ondersteunde HTML-entiteiten door een spatie
-        $body = preg_replace('/&[a-zA-Z0-9#]+;/', ' ', $body);
+        // Debug: log response
+        error_log('Sunhotels SearchHotels response: ' . substr($body, 0, 500));
 
+        // Parse XML naar array of object
         $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
         if ($xml === false) {
-            throw new Exception('Ongeldige XML van Sunhotels API.');
+            throw new Exception('Ongeldige XML van Sunhotels.');
         }
 
-        if (isset($xml->Error)) {
-            $errorType = (string)($xml->Error->ErrorType ?? '');
-            $errorMsg  = (string)($xml->Error->Message ?? 'Onbekende fout');
-            throw new Exception("Sunhotels API error: $errorType - $errorMsg");
-        }
-
+        // Mapping: alleen relevante hoteldata als array
         $hotels = [];
         if (isset($xml->hotels->hotel)) {
             foreach ($xml->hotels->hotel as $hotel) {
                 $hotels[] = [
-                    'id'           => (string)($hotel->{'hotel.id'} ?? ''),
-                    'name'         => (string)($hotel->name ?? ''),
-                    'destination'  => (string)($hotel->destination ?? ''),
-                    'city'         => (string)($hotel->{'hotel.addr.city'} ?? ''),
-                    'address'      => (string)($hotel->{'hotel.address'} ?? ''),
-                    'classification' => (string)($hotel->classification ?? ''),
-                    // ...meer velden indien gewenst...
+                    'id'            => (string)($hotel->{'hotel.id'} ?? ''),
+                    'name'          => (string)($hotel->name ?? ''),
+                    'city'          => (string)($hotel->{'hotel.addr.city'} ?? ''),
+                    'address'       => (string)($hotel->hotel->address ?? $hotel->{'hotel.address'} ?? ''),
+                    'country'       => (string)($hotel->{'hotel.addr.country'} ?? ''),
+                    'image'         => isset($hotel->images->image[0]->smallImage['url']) ? (string)$hotel->images->image[0]->smallImage['url'] : '',
+                    'price'         => isset($hotel->roomtypes->roomtype->rooms->room->meals->meal->prices->price) ? (string)$hotel->roomtypes->roomtype->rooms->room->meals->meal->prices->price : '',
+                    'classification'=> (string)($hotel->classification ?? ''),
+                    'themes'        => isset($hotel->themes) ? json_encode($hotel->themes) : '',
+                    // Voeg meer toe indien gewenst
                 ];
             }
         }
 
         return $hotels;
-    }
-
-    /**
-     * PreBook-aanvraag bij Sunhotels API.
-     * @param array $prebookData Sunhotels parameters, zie documentatie
-     * @return array
-     * @throws Exception
-     */
-    public function preBook($prebookData) {
-        $endpoint = $this->apiUrl . '/PreBookV2';
-
-        // Sunhotels ondersteunt alleen 1 kamer per boeking
-        $prebookData['numberOfRooms'] = 1;
-
-        $params = array_merge([
-            'userName'        => $this->apiUser,
-            'password'        => $this->apiPass,
-            'language'        => $this->language,
-            'currencies'      => $this->currency,
-            'customerCountry' => $this->customerCountry,
-            'B2C'             => 0, // Altijd 0
-        ], $prebookData);
-
-        $url = $endpoint . '?' . http_build_query($params);
-
-        $response = wp_remote_get($url, [
-            'timeout' => 30,
-            'headers' => [
-                'Accept' => 'application/xml',
-            ],
-        ]);
-
-        if (is_wp_error($response)) {
-            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
-        }
-
-        $body = wp_remote_retrieve_body($response);
-        if (empty($body)) {
-            throw new Exception('Lege response van Sunhotels API (PreBook).');
-        }
-
-        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
-        if ($xml === false) {
-            throw new Exception('Ongeldige XML van Sunhotels API (PreBook).');
-        }
-
-        if (isset($xml->Error)) {
-            $errorType = (string)($xml->Error->ErrorType ?? '');
-            $errorMsg  = (string)($xml->Error->Message ?? 'Onbekende fout');
-            throw new Exception("Sunhotels API PreBook error: $errorType - $errorMsg");
-        }
-
-        return json_decode(json_encode($xml), true);
-    }
-
-    /**
-     * Book-aanvraag bij Sunhotels API.
-     * @param array $bookData Sunhotels parameters, zie documentatie
-     * @param bool $paymentCompleted (vereist: true als betaling is afgerond)
-     * @return array
-     * @throws Exception
-     */
-    public function book($bookData, $paymentCompleted = false) {
-        // Alleen boeken als betaling is afgerond
-        if (!$paymentCompleted) {
-            throw new Exception('Boeking mag pas naar Sunhotels na succesvolle betaling.');
-        }
-
-        // Alleen echte boekingen toestaan als userName NIET FreestaysTEST is
-        if ($this->apiUser === 'FreestaysTEST') {
-            throw new Exception('Boeken is niet toegestaan in testmodus (FreestaysTEST).');
-        }
-
-        $endpoint = $this->apiUrl . '/BookV2';
-
-        // Sunhotels ondersteunt alleen 1 kamer per boeking
-        $bookData['numberOfRooms'] = 1;
-
-        $params = array_merge([
-            'userName'        => $this->apiUser,
-            'password'        => $this->apiPass,
-            'language'        => $this->language,
-            'currencies'      => $this->currency,
-            'customerCountry' => $this->customerCountry,
-            'B2C'             => 0, // Altijd 0
-        ], $bookData);
-
-        $url = $endpoint . '?' . http_build_query($params);
-
-        $response = wp_remote_get($url, [
-            'timeout' => 30,
-            'headers' => [
-                'Accept' => 'application/xml',
-            ],
-        ]);
-
-        if (is_wp_error($response)) {
-            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
-        }
-
-        $body = wp_remote_retrieve_body($response);
-        if (empty($body)) {
-            throw new Exception('Lege response van Sunhotels API (Book).');
-        }
-
-        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
-        if ($xml === false) {
-            throw new Exception('Ongeldige XML van Sunhotels API (Book).');
-        }
-
-        if (isset($xml->Error)) {
-            $errorType = (string)($xml->Error->ErrorType ?? '');
-            $errorMsg  = (string)($xml->Error->Message ?? 'Onbekende fout');
-            throw new Exception("Sunhotels API Book error: $errorType - $errorMsg");
-        }
-
-        return json_decode(json_encode($xml), true);
-    }
-
-    /**
-     * Haal bestemmingen (landen) op uit de Sunhotels API.
-     * @return array
-     */
-    public function getDestinations() {
-        $params = [
-            'method'   => 'GetDestinations',
-            'userName' => $this->apiUser,
-            'password' => $this->apiPass,
-            'language' => $this->language,
-        ];
-
-        $response = wp_remote_post($this->apiUrl, [
-            'body'    => $params,
-            'timeout' => 30,
-        ]);
-        if (is_wp_error($response)) {
-            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
-        }
-        $body = wp_remote_retrieve_body($response);
-        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
-        if ($xml === false) {
-            throw new Exception('Ongeldige XML van Sunhotels API (GetDestinations).');
-        }
-        if (isset($xml->Error)) {
-            throw new Exception('Sunhotels API error: ' . (string)$xml->Error->Message);
-        }
-        $destinations = [];
-        if (isset($xml->destinations->destination)) {
-            foreach ($xml->destinations->destination as $dest) {
-                $destinations[] = [
-                    'destinationId'   => (string)($dest->destinationId ?? ''),
-                    'destinationName' => (string)($dest->destinationName ?? ''),
-                ];
-            }
-        }
-        return $destinations;
-    }
-
-    /**
-     * Haal steden op voor een land (destinationId) uit de Sunhotels API.
-     * @param string $countryId
-     * @return array
-     */
-    public function getCitiesByCountry($countryId) {
-        $params = [
-            'method'       => 'GetCities',
-            'userName'     => $this->apiUser,
-            'password'     => $this->apiPass,
-            'language'     => $this->language,
-            'destinationId'=> $countryId,
-        ];
-
-        $response = wp_remote_post($this->apiUrl, [
-            'body'    => $params,
-            'timeout' => 30,
-        ]);
-        if (is_wp_error($response)) {
-            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
-        }
-        $body = wp_remote_retrieve_body($response);
-        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
-        if ($xml === false) {
-            throw new Exception('Ongeldige XML van Sunhotels API (GetCities).');
-        }
-        if (isset($xml->Error)) {
-            throw new Exception('Sunhotels API error: ' . (string)$xml->Error->Message);
-        }
-        $cities = [];
-        if (isset($xml->cities->city)) {
-            foreach ($xml->cities->city as $city) {
-                $cities[] = [
-                    'id'   => (string)($city->cityId ?? ''),
-                    'name' => (string)($city->cityName ?? ''),
-                ];
-            }
-        }
-        return $cities;
-    }
-
-    /**
-     * Haal resorts op voor een stad (cityId) uit de Sunhotels API.
-     * @param string $cityId
-     * @return array
-     */
-    public function getResortsByCity($cityId) {
-        $params = [
-            'method'   => 'GetResorts',
-            'userName' => $this->apiUser,
-            'password' => $this->apiPass,
-            'language' => $this->language,
-            'cityId'   => $cityId,
-        ];
-
-        $response = wp_remote_post($this->apiUrl, [
-            'body'    => $params,
-            'timeout' => 30,
-        ]);
-        if (is_wp_error($response)) {
-            throw new Exception('API niet bereikbaar: ' . $response->get_error_message());
-        }
-        $body = wp_remote_retrieve_body($response);
-        $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
-        if ($xml === false) {
-            throw new Exception('Ongeldige XML van Sunhotels API (GetResorts).');
-        }
-        if (isset($xml->Error)) {
-            throw new Exception('Sunhotels API error: ' . (string)$xml->Error->Message);
-        }
-        $resorts = [];
-        if (isset($xml->resorts->resort)) {
-            foreach ($xml->resorts->resort as $resort) {
-                $resorts[] = [
-                    'id'   => (string)($resort->resortId ?? ''),
-                    'name' => (string)($resort->resortName ?? ''),
-                ];
-            }
-        }
-        return $resorts;
     }
 }
