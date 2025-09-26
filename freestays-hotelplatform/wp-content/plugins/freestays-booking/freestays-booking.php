@@ -11,7 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 // Composer autoloader
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
     require_once __DIR__ . '/vendor/autoload.php';
-    // .env laden indien aanwezig (Optie 2)
     $env_path = dirname(__DIR__, 3) . '/config';
     if (file_exists($env_path . '/.env')) {
         $dotenv = Dotenv\Dotenv::createImmutable($env_path);

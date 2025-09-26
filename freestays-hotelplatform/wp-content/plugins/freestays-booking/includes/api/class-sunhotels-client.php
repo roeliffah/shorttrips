@@ -1,4 +1,6 @@
 <?php
+error_log('API_URL: ' . getenv('API_URL'));
+
 class Sunhotels_Client {
     private $apiUrl;
     private $apiUser;
