@@ -43,10 +43,14 @@ class Sunhotels_Client {
         // Dynamisch destinationID bepalen
         $destinationID = $destination_id ?: ($resort_id ?: ($city_id ?: $country_id));
         if (empty($destinationID) || !is_numeric($destinationID)) {
-            // Dynamisch ophalen op basis van een zoeknaam, bijvoorbeeld "Turkije"
-            $destinationID = $this->getDestinationIdByName('Turkije');
+            // Zoek op de gebruikersinvoer (bijv. stad, resort of land)
+            $zoekterm = $resort_id ?: ($city_id ?: ($country_id ?: 'Turkije'));
+            // Als resort/city/country geen ID is, gebruik de naam als zoekterm
+            if (!is_numeric($zoekterm)) {
+                $destinationID = $this->getDestinationIdByName($zoekterm);
+            }
             if (empty($destinationID)) {
-                throw new Exception('Geen geldige destinationID gevonden voor zoeknaam "Turkije".');
+                throw new Exception('Geen geldige destinationID gevonden voor zoeknaam "' . $zoekterm . '".');
             }
         }
 
