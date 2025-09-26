@@ -43,38 +43,67 @@ class Sunhotels_Client {
         // Bepaal destinationID (gebruik $destination_id als zoekterm, anders city/resort/country)
         $destinationID = $destination_id ?: ($resort_id ?: ($city_id ?: $country_id));
 
-        $params = [
-            'userName'           => $this->api_user,
-            'password'           => $this->api_pass,
-            'language'           => 'en',
-            'currencies'         => 'EUR',
-            'checkInDate'        => $checkin,         // formaat: YYYY-MM-DD
-            'checkOutDate'       => $checkout,        // formaat: YYYY-MM-DD
-            'numberOfRooms'      => $rooms,
-            'destinationID'      => $destinationID,
-            'numberOfAdults'     => $adults,
-            'numberOfChildren'   => $children,
-            'childrenAges'       => $children > 0 ? implode(',', $child_ages) : '',
-            'resortIDs'          => $resort_id ? $resort_id : '',
-            // Toegevoegde velden:
-            'mealIds'            => $mealIds,
-            'showReviews'        => $showReviews ? 'true' : 'false',
-            'minStarRating'      => $minStarRating,
-            'maxStarRating'      => $maxStarRating,
-            'featureIds'         => $featureIds,
-            'minPrice'           => $minPrice,
-            'themeIds'           => $themeIds,
-            'totalRoomsInBatch'  => $totalRoomsInBatch,
-        ];
+        // Bouw de SOAP XML body
+        $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+            . '<soap:Body>'
+            . '<SearchHotels xmlns="http://xml.sunhotels.net/15/">'
+            . '<userName>' . esc_html($this->api_user) . '</userName>'
+            . '<password>' . esc_html($this->api_pass) . '</password>'
+            . '<language>en</language>'
+            . '<currencies>EUR</currencies>'
+            . '<checkInDate>' . esc_html($checkin) . '</checkInDate>'
+            . '<checkOutDate>' . esc_html($checkout) . '</checkOutDate>'
+            . '<numberOfRooms>' . intval($rooms) . '</numberOfRooms>'
+            . '<destinationID>' . esc_html($destinationID) . '</destinationID>'
+            . '<numberOfAdults>' . intval($adults) . '</numberOfAdults>'
+            . '<numberOfChildren>' . intval($children) . '</numberOfChildren>';
 
-        // Filter lege waarden eruit
-        $params = array_filter($params, function($v) { return $v !== null && $v !== ''; });
+        // Optionele velden
+        if (!empty($child_ages) && $children > 0) {
+            $soap_body .= '<childrenAges>' . esc_html(implode(',', $child_ages)) . '</childrenAges>';
+        }
+        if (!empty($resort_id)) {
+            $soap_body .= '<resortIDs>' . esc_html($resort_id) . '</resortIDs>';
+        }
+        if (!empty($mealIds)) {
+            $soap_body .= '<mealIds>' . esc_html($mealIds) . '</mealIds>';
+        }
+        if ($showReviews) {
+            $soap_body .= '<showReviews>true</showReviews>';
+        }
+        if ($minStarRating !== '') {
+            $soap_body .= '<minStarRating>' . intval($minStarRating) . '</minStarRating>';
+        }
+        if ($maxStarRating !== '') {
+            $soap_body .= '<maxStarRating>' . intval($maxStarRating) . '</maxStarRating>';
+        }
+        if (!empty($featureIds)) {
+            $soap_body .= '<featureIds>' . esc_html($featureIds) . '</featureIds>';
+        }
+        if ($minPrice !== '') {
+            $soap_body .= '<minPrice>' . floatval($minPrice) . '</minPrice>';
+        }
+        if (!empty($themeIds)) {
+            $soap_body .= '<themeIds>' . esc_html($themeIds) . '</themeIds>';
+        }
+        if ($totalRoomsInBatch !== '') {
+            $soap_body .= '<totalRoomsInBatch>' . intval($totalRoomsInBatch) . '</totalRoomsInBatch>';
+        }
 
-        // Debug: log request
-        error_log('Sunhotels SearchHotels params: ' . print_r($params, true));
+        $soap_body .= '</SearchHotels></soap:Body></soap:Envelope>';
+
+        // Debug: log request body
+        error_log('Sunhotels SOAP SearchHotels body: ' . $soap_body);
 
         $response = wp_remote_post($this->api_url, [
-            'body'    => $params,
+            'body'    => $soap_body,
+            'headers' => [
+                'Content-Type' => 'text/xml; charset=utf-8',
+                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchHotels'
+            ],
             'timeout' => 30,
         ]);
 
@@ -89,15 +118,27 @@ class Sunhotels_Client {
             throw new Exception('Ongeldige of lege response van Sunhotels: ' . substr($body, 0, 500));
         }
 
+        // Parse de SOAP response om bij het echte resultaat te komen
         $xml = simplexml_load_string($body, 'SimpleXMLElement', LIBXML_NOCDATA);
         if ($xml === false) {
             throw new Exception('Ongeldige XML van Sunhotels.');
         }
 
+        // Zoek het SearchHotelsResult element in de SOAP response
+        $result = $xml->xpath('//SearchHotelsResult');
+        if (!$result || !isset($result[0])) {
+            throw new Exception('Geen SearchHotelsResult gevonden in response.');
+        }
+
+        $hotels_xml = simplexml_load_string($result[0], 'SimpleXMLElement', LIBXML_NOCDATA);
+        if ($hotels_xml === false) {
+            throw new Exception('Ongeldige hoteldata XML van Sunhotels.');
+        }
+
         // Mapping: alleen relevante hoteldata als array
         $hotels = [];
-        if (isset($xml->hotels->hotel)) {
-            foreach ($xml->hotels->hotel as $hotel) {
+        if (isset($hotels_xml->hotels->hotel)) {
+            foreach ($hotels_xml->hotels->hotel as $hotel) {
                 $hotels[] = [
                     'id'            => (string)($hotel->{'hotel.id'} ?? ''),
                     'name'          => (string)($hotel->name ?? ''),
