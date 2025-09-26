@@ -417,5 +417,4 @@ function freestays_test_sunhotels_api() {
 }
 add_shortcode('freestays_test_api', 'freestays_test_sunhotels_api');
 
-<?php
 error_log('API_URL uit .env: ' . ($_ENV['API_URL'] ?? 'NIET GEZET'));
