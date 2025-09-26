@@ -26,6 +26,8 @@ jQuery(document).ready(function($) {
                 options += '<option value="">Geen steden gevonden</option>';
             }
             $('#freestays_city').html(options);
+        }).fail(function() {
+            $('#freestays_city').html('<option value="">Fout bij laden steden</option>');
         });
     });
 
@@ -45,19 +47,9 @@ jQuery(document).ready(function($) {
                 options += '<option value="">Geen resorts gevonden</option>';
             }
             $('#freestays_resort').html(options);
+        }).fail(function() {
+            $('#freestays_resort').html('<option value="">Fout bij laden resorts</option>');
         });
     });
 });
 
-<?php
-add_action('wp_ajax_freestays_get_cities', 'freestays_get_cities');
-add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_get_cities');
-
-function freestays_get_cities() {
-    $country_id = $_POST['country_id'] ?? '';
-    // Haal steden op via Sunhotels API met $country_id
-    $client = new Sunhotels_Client(...);
-    $cities = $client->getCitiesByCountry($country_id);
-    wp_send_json($cities);
-}
-?>

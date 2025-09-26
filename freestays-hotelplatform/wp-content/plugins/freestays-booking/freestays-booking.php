@@ -8,7 +8,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-// Composer autoloader
+// Composer autoloader en .env laden
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
     require_once __DIR__ . '/vendor/autoload.php';
     $env_path = dirname(__DIR__, 3) . '/config';
@@ -325,40 +325,27 @@ function freestays_search_shortcode($atts) {
 add_shortcode('freestays_search', 'freestays_search_shortcode');
 
 /**
- * AJAX handler voor steden (cities) op basis van country_id
+ * AJAX handlers
  */
 add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
 add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
 function freestays_ajax_get_cities() {
-    // Haal country_id uit POST
     $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
     if (empty($country_id)) {
         wp_send_json([]);
     }
-
-    // Gebruik de bestaande functie voor ophalen van steden
     $cities = freestays_get_cities($country_id);
-
-    // Geef als JSON terug
     wp_send_json($cities);
 }
 
-/**
- * AJAX handler voor resorts op basis van city_id
- */
 add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
 add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
 function freestays_ajax_get_resorts() {
-    // Haal city_id uit POST
     $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
     if (empty($city_id)) {
         wp_send_json([]);
     }
-
-    // Gebruik de bestaande functie voor ophalen van resorts
     $resorts = freestays_get_resorts($city_id);
-
-    // Geef als JSON terug
     wp_send_json($resorts);
 }
 
@@ -383,6 +370,13 @@ function freestays_enqueue_assets() {
         'freestays-ajax-js',
         'freestaysAjax',
         array('ajax_url' => admin_url('admin-ajax.php'))
+    );
+    wp_enqueue_script(
+        'freestays-js',
+        plugins_url('assets/js/freestays.js', __FILE__),
+        array(),
+        filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays.js'),
+        true
     );
 }
 add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
