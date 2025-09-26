@@ -44,7 +44,7 @@ class Sunhotels_Client {
         $destinationID = $destination_id ?: ($resort_id ?: ($city_id ?: $country_id));
         if (empty($destinationID) || !is_numeric($destinationID)) {
             // Zoek op de gebruikersinvoer (bijv. stad, resort of land)
-            $zoekterm = $resort_id ?: ($city_id ?: ($country_id ?: 'Turkije'));
+            $zoekterm = $resort_id ?: ($city_id ?: $country_id);
             // Als resort/city/country geen ID is, gebruik de naam als zoekterm
             if (!is_numeric($zoekterm)) {
                 $destinationID = $this->getDestinationIdByName($zoekterm);
