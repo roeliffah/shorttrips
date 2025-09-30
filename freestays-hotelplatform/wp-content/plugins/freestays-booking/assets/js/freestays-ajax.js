@@ -9,7 +9,6 @@ wp_localize_script(
 
 // filepath: /workspaces/shorttrips/freestays-hotelplatform/wp-content/plugins/freestays-booking/assets/js/freestays-ajax.js
 jQuery(document).ready(function($) {
-    console.log('freestays.js geladen');
     console.log('freestays-ajax.js geladen');
 
     $('#freestays_country').on('change', function() {
@@ -55,7 +54,7 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Assuming there's a button or some trigger to load hotels
+    // Optioneel: hotels laden via AJAX (indien je een knop hebt)
     $('#load_hotels').on('click', function() {
         var resortId = $('#freestays_resort').val();
         if (!resortId) {
@@ -67,7 +66,6 @@ jQuery(document).ready(function($) {
             resort_id: resortId
         }, function(data) {
             if (data.success) {
-                // Assuming there's a div with id="results" to show the hotels
                 var resultsDiv = $('#results');
                 resultsDiv.empty();
                 resultsDiv.html(data.data.map(hotel => `
