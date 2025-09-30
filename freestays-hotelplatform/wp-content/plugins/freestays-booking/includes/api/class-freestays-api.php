@@ -59,7 +59,9 @@ class Freestays_API {
     }
 }
 
+// REST API endpoints
 add_action('rest_api_init', function () {
+    // Zoek hotels op plaatsnaam
     register_rest_route('freestays/v1', '/search-by-city', [
         'methods'  => 'GET',
         'callback' => function (WP_REST_Request $request) {
@@ -91,4 +93,194 @@ add_action('rest_api_init', function () {
         },
         'permission_callback' => '__return_true',
     ]);
+
+    // Landen ophalen
+    register_rest_route('freestays/v1', '/countries', [
+        'methods'  => 'GET',
+        'callback' => function () {
+            require_once __DIR__ . '/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client(
+                $_ENV['API_URL'] ?? getenv('API_URL') ?? '',
+                $_ENV['API_USER'] ?? getenv('API_USER') ?? '',
+                $_ENV['API_PASS'] ?? getenv('API_PASS') ?? ''
+            );
+            return rest_ensure_response($client->getCountries());
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Resorts ophalen op basis van country_id
+    register_rest_route('freestays/v1', '/resorts', [
+        'methods'  => 'GET',
+        'callback' => function (WP_REST_Request $request) {
+            $country_id = $request->get_param('country_id');
+            require_once __DIR__ . '/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client(
+                $_ENV['API_URL'] ?? getenv('API_URL') ?? '',
+                $_ENV['API_USER'] ?? getenv('API_USER') ?? '',
+                $_ENV['API_PASS'] ?? getenv('API_PASS') ?? ''
+            );
+            return rest_ensure_response($client->getResorts($country_id));
+        },
+        'permission_callback' => '__return_true',
+    ]);
+
+    // Cities ophalen op basis van resort_id
+    register_rest_route('freestays/v1', '/cities', [
+        'methods'  => 'GET',
+        'callback' => function (WP_REST_Request $request) {
+            $resort_id = $request->get_param('resort_id');
+            require_once __DIR__ . '/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client(
+                $_ENV['API_URL'] ?? getenv('API_URL') ?? '',
+                $_ENV['API_USER'] ?? getenv('API_USER') ?? '',
+                $_ENV['API_PASS'] ?? getenv('API_PASS') ?? ''
+            );
+            return rest_ensure_response($client->getCities($resort_id));
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+// React component code
+add_action('wp_footer', function() {
+    ?>
+    <script>
+    const API_BASE = '/wp-json/freestays/v1';
+
+    function HotelSearchForm({ onResults }) {
+      const [countries, setCountries] = React.useState([]);
+      const [resorts, setResorts] = React.useState([]);
+      const [cities, setCities] = React.useState([]);
+      const [selectedCountry, setSelectedCountry] = React.useState('');
+      const [selectedResort, setSelectedResort] = React.useState('');
+      const [selectedCity, setSelectedCity] = React.useState('');
+      const [checkin, setCheckin] = React.useState('');
+      const [checkout, setCheckout] = React.useState('');
+      const [adults, setAdults] = React.useState(2);
+      const [children, setChildren] = React.useState(0);
+      const [loading, setLoading] = React.useState(false);
+      const [error, setError] = React.useState('');
+
+      // Landen ophalen bij laden
+      React.useEffect(() => {
+        fetch(`${API_BASE}/countries`)
+          .then(res => res.json())
+          .then(setCountries)
+          .catch(() => setError('Kan landen niet laden.'));
+      }, []);
+
+      // Resorts ophalen na land-selectie
+      React.useEffect(() => {
+        if (!selectedCountry) {
+          setResorts([]);
+          setSelectedResort('');
+          return;
+        }
+        fetch(`${API_BASE}/resorts?country_id=${selectedCountry}`)
+          .then(res => res.json())
+          .then(setResorts)
+          .catch(() => setError('Kan resorts niet laden.'));
+      }, [selectedCountry]);
+
+      // Cities ophalen na resort-selectie
+      React.useEffect(() => {
+        if (!selectedResort) {
+          setCities([]);
+          setSelectedCity('');
+          return;
+        }
+        fetch(`${API_BASE}/cities?resort_id=${selectedResort}`)
+          .then(res => res.json())
+          .then(setCities)
+          .catch(() => setError('Kan steden niet laden.'));
+      }, [selectedResort]);
+
+      // Formulier submit
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        const cityObj = cities.find(c => String(c.id) === String(selectedCity));
+        if (!cityObj || !cityObj.destination_id) {
+          setError('Geen geldige bestemming geselecteerd.');
+          setLoading(false);
+          return;
+        }
+
+        const params = new URLSearchParams({
+          city: cityObj.name,
+          checkin,
+          checkout,
+          adults,
+          children,
+          rooms: 1
+        });
+
+        try {
+          const res = await fetch(`${API_BASE}/search-by-city?${params.toString()}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Zoeken mislukt');
+          if (onResults) onResults(data);
+        } catch (err) {
+          setError(err.message);
+        }
+        setLoading(false);
+      };
+
+      return (
+        React.createElement("form", { onSubmit: handleSubmit },
+          error && React.createElement("div", { style: { color: 'red' } }, error),
+          React.createElement("div", null,
+            React.createElement("label", null, "Land:"),
+            React.createElement("select", { value: selectedCountry, onChange: e => setSelectedCountry(e.target.value) },
+              React.createElement("option", { value: "" }, "Kies een land"),
+              countries.map(c => (
+                React.createElement("option", { key: c.id, value: c.id }, c.name)
+              ))
+            )
+          ),
+          React.createElement("div", null,
+            React.createElement("label", null, "Resort:"),
+            React.createElement("select", { value: selectedResort, onChange: e => setSelectedResort(e.target.value), disabled: !selectedCountry },
+              React.createElement("option", { value: "" }, "Kies een resort"),
+              resorts.map(r => (
+                React.createElement("option", { key: r.id, value: r.id }, r.name)
+              ))
+            )
+          ),
+          React.createElement("div", null,
+            React.createElement("label", null, "Stad:"),
+            React.createElement("select", { value: selectedCity, onChange: e => setSelectedCity(e.target.value), disabled: !selectedResort },
+              React.createElement("option", { value: "" }, "Kies een stad"),
+              cities.map(city => (
+                React.createElement("option", { key: city.id, value: city.id }, city.name)
+              ))
+            )
+          ),
+          React.createElement("div", null,
+            React.createElement("label", null, "Check-in:"),
+            React.createElement("input", { type: "date", value: checkin, onChange: e => setCheckin(e.target.value), required: true })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", null, "Check-out:"),
+            React.createElement("input", { type: "date", value: checkout, onChange: e => setCheckout(e.target.value), required: true })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", null, "Volwassenen:"),
+            React.createElement("input", { type: "number", min: "1", value: adults, onChange: e => setAdults(e.target.value) })
+          ),
+          React.createElement("div", null,
+            React.createElement("label", null, "Kinderen:"),
+            React.createElement("input", { type: "number", min: "0", value: children, onChange: e => setChildren(e.target.value) })
+          ),
+          React.createElement("button", { type: "submit", disabled: loading },
+            loading ? 'Zoeken...' : 'Zoek hotels'
+          )
+        )
+      );
+    }
+    </script>
+    <?php
 });
