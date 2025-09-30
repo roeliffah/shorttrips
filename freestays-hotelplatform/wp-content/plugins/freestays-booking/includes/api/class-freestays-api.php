@@ -149,7 +149,6 @@ add_shortcode('freestays_search', function () {
     <div id="freestays-search-root"></div>
     <script>
     (function() {
-        // Laad React en ReactDOM als ze nog niet aanwezig zijn
         function loadScript(src, cb) {
             var s = document.createElement('script');
             s.src = src;
@@ -189,13 +188,15 @@ add_shortcode('freestays_search', function () {
                 const [error, setError] = React.useState('');
                 const [results, setResults] = React.useState(null);
 
+                // Landen ophalen bij laden
                 React.useEffect(() => {
                     fetch(`${API_BASE}/countries`)
                         .then(res => res.json())
-                        .then(setCountries)
+                        .then(data => setCountries(Array.isArray(data) ? data : []))
                         .catch(() => setError('Kan landen niet laden.'));
                 }, []);
 
+                // Resorts ophalen na land-selectie
                 React.useEffect(() => {
                     if (!selectedCountry) {
                         setResorts([]);
@@ -204,10 +205,11 @@ add_shortcode('freestays_search', function () {
                     }
                     fetch(`${API_BASE}/resorts?country_id=${selectedCountry}`)
                         .then(res => res.json())
-                        .then(setResorts)
+                        .then(data => setResorts(Array.isArray(data) ? data : []))
                         .catch(() => setError('Kan resorts niet laden.'));
                 }, [selectedCountry]);
 
+                // Cities ophalen na resort-selectie
                 React.useEffect(() => {
                     if (!selectedResort) {
                         setCities([]);
@@ -216,7 +218,7 @@ add_shortcode('freestays_search', function () {
                     }
                     fetch(`${API_BASE}/cities?resort_id=${selectedResort}`)
                         .then(res => res.json())
-                        .then(setCities)
+                        .then(data => setCities(Array.isArray(data) ? data : []))
                         .catch(() => setError('Kan steden niet laden.'));
                 }, [selectedResort]);
 
@@ -258,7 +260,10 @@ add_shortcode('freestays_search', function () {
                         error && React.createElement("div", { style: { color: 'red' } }, error),
                         React.createElement("div", null,
                             React.createElement("label", null, "Land:"),
-                            React.createElement("select", { value: selectedCountry, onChange: e => setSelectedCountry(e.target.value) },
+                            React.createElement("select", {
+                                value: selectedCountry,
+                                onChange: e => setSelectedCountry(e.target.value)
+                            },
                                 React.createElement("option", { value: "" }, "Kies een land"),
                                 countries.map(c => (
                                     React.createElement("option", { key: c.id, value: c.id }, c.name)
@@ -267,7 +272,11 @@ add_shortcode('freestays_search', function () {
                         ),
                         React.createElement("div", null,
                             React.createElement("label", null, "Resort:"),
-                            React.createElement("select", { value: selectedResort, onChange: e => setSelectedResort(e.target.value), disabled: !selectedCountry },
+                            React.createElement("select", {
+                                value: selectedResort,
+                                onChange: e => setSelectedResort(e.target.value),
+                                disabled: !selectedCountry
+                            },
                                 React.createElement("option", { value: "" }, "Kies een resort"),
                                 resorts.map(r => (
                                     React.createElement("option", { key: r.id, value: r.id }, r.name)
@@ -276,7 +285,11 @@ add_shortcode('freestays_search', function () {
                         ),
                         React.createElement("div", null,
                             React.createElement("label", null, "Stad:"),
-                            React.createElement("select", { value: selectedCity, onChange: e => setSelectedCity(e.target.value), disabled: !selectedResort },
+                            React.createElement("select", {
+                                value: selectedCity,
+                                onChange: e => setSelectedCity(e.target.value),
+                                disabled: !selectedResort
+                            },
                                 React.createElement("option", { value: "" }, "Kies een stad"),
                                 cities.map(city => (
                                     React.createElement("option", { key: city.id, value: city.id }, city.name)
@@ -285,19 +298,39 @@ add_shortcode('freestays_search', function () {
                         ),
                         React.createElement("div", null,
                             React.createElement("label", null, "Check-in:"),
-                            React.createElement("input", { type: "date", value: checkin, onChange: e => setCheckin(e.target.value), required: true })
+                            React.createElement("input", {
+                                type: "date",
+                                value: checkin,
+                                onChange: e => setCheckin(e.target.value),
+                                required: true
+                            })
                         ),
                         React.createElement("div", null,
                             React.createElement("label", null, "Check-out:"),
-                            React.createElement("input", { type: "date", value: checkout, onChange: e => setCheckout(e.target.value), required: true })
+                            React.createElement("input", {
+                                type: "date",
+                                value: checkout,
+                                onChange: e => setCheckout(e.target.value),
+                                required: true
+                            })
                         ),
                         React.createElement("div", null,
                             React.createElement("label", null, "Volwassenen:"),
-                            React.createElement("input", { type: "number", min: "1", value: adults, onChange: e => setAdults(e.target.value) })
+                            React.createElement("input", {
+                                type: "number",
+                                min: "1",
+                                value: adults,
+                                onChange: e => setAdults(e.target.value)
+                            })
                         ),
                         React.createElement("div", null,
                             React.createElement("label", null, "Kinderen:"),
-                            React.createElement("input", { type: "number", min: "0", value: children, onChange: e => setChildren(e.target.value) })
+                            React.createElement("input", {
+                                type: "number",
+                                min: "0",
+                                value: children,
+                                onChange: e => setChildren(e.target.value)
+                            })
                         ),
                         React.createElement("button", { type: "submit", disabled: loading },
                             loading ? 'Zoeken...' : 'Zoek hotels'
