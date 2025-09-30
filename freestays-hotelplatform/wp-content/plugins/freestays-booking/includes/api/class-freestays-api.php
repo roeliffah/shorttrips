@@ -58,3 +58,37 @@ class Freestays_API {
         return json_decode($body, true);
     }
 }
+
+add_action('rest_api_init', function () {
+    register_rest_route('freestays/v1', '/search-by-city', [
+        'methods'  => 'GET',
+        'callback' => function (WP_REST_Request $request) {
+            $city    = $request->get_param('city');
+            $checkin = $request->get_param('checkin');
+            $checkout = $request->get_param('checkout');
+            $adults  = $request->get_param('adults') ?: 2;
+            $children = $request->get_param('children') ?: 0;
+            $rooms   = $request->get_param('rooms') ?: 1;
+
+            if (!$city || !$checkin || !$checkout) {
+                return new WP_Error('missing_params', 'Vereiste parameters ontbreken.', ['status' => 400]);
+            }
+
+            require_once __DIR__ . '/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client(
+                $_ENV['API_URL'] ?? getenv('API_URL') ?? '',
+                $_ENV['API_USER'] ?? getenv('API_USER') ?? '',
+                $_ENV['API_PASS'] ?? getenv('API_PASS') ?? ''
+            );
+
+            $result = $client->zoekHotelsOpPlaats($city, $checkin, $checkout, $adults, $children, $rooms);
+
+            if (isset($result['error'])) {
+                return new WP_Error('search_failed', $result['error'], ['status' => 500]);
+            }
+
+            return rest_ensure_response($result);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
