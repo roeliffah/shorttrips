@@ -323,6 +323,7 @@ function freestays_search_shortcode($atts) {
     return $output;
 }
 add_shortcode('freestays_search', 'freestays_search_shortcode');
+add_shortcode('freestays_search_classic', 'freestays_search_shortcode');
 
 /**
  * AJAX handlers
