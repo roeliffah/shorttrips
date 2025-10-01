@@ -1,7 +1,6 @@
 add_shortcode('freestays_search', 'freestays_search_form_shortcode');
 
 function freestays_search_form_shortcode() {
-    ?>
     <div id="freestays-search-form"></div>
     <script>
         (function () {
