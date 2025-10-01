@@ -61,13 +61,12 @@ body {
 }
 
 .fs-btn {
-  padding: 10px 28px;
-  border: none;
-  border-radius: 6px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #fff;
+  font-weight: bold;
 }
 
 .fs-btn-primary {
@@ -79,18 +78,22 @@ body {
   background: #ffd900;
 }
 
+.fs-btn-yellow {
+  background: #FFC300;
+  color: #003366;
+}
+
 #freestays-search-results {
   margin-top: 32px;
 }
 
 /* Card style voor zoekresultaten (voorbeeld) */
 .fs-hotel-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
   background: #fff;
-  border: 1px solid var(--fs-border);
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(26,79,160,0.04);
-  padding: 18px 20px;
-  margin-bottom: 20px;
   display: flex;
   gap: 18px;
   align-items: flex-start;

@@ -418,3 +418,15 @@ function freestays_test_sunhotels_api() {
 add_shortcode('freestays_test_api', 'freestays_test_sunhotels_api');
 
 error_log('API_URL uit .env: ' . ($_ENV['API_URL'] ?? 'NIET GEZET'));
+
+<?php
+function freestays_enqueue_react_search() {
+    wp_enqueue_script(
+        'freestays-react-search',
+        plugins_url('assets/js/freestays-react-search.js', __FILE__),
+        array(),
+        filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays-react-search.js'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'freestays_enqueue_react_search');

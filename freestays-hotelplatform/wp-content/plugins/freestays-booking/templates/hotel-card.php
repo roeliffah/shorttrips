@@ -31,3 +31,13 @@ if (!isset($hotel)) return;
         </div>
     </div>
 </div>
+<?php if (!empty($hotel_data)): ?>
+<div class="fs-hotel-card">
+    <h3><?php echo esc_html($hotel_data['name'] ?? ''); ?></h3>
+    <p><?php echo esc_html($hotel_data['address'] ?? ''); ?>, <?php echo esc_html($hotel_data['city'] ?? ''); ?></p>
+    <p>Sterren: <?php echo esc_html($hotel_data['classification'] ?? ''); ?></p>
+    <p>Thema's: <?php echo esc_html($hotel_data['themes'] ?? ''); ?></p>
+    <p>Prijs: <?php echo esc_html($hotel_data['price'] ?? ''); ?></p>
+    <a href="#" class="fs-btn fs-btn-yellow">Bekijk hotel</a>
+</div>
+<?php endif; ?>
