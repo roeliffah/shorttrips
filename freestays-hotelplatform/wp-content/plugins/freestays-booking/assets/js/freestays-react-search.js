@@ -8,20 +8,20 @@ function freestays_search_form_shortcode() {
 
             function SearchInput({ value, onChange, onSearch }) {
                 return (
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="Zoek op plaats, hotelnaam of thema"
-                            value={value}
-                            onChange={e => onChange(e.target.value)}
-                            style={{ width: '100%', marginBottom: 8 }}
-                        />
-                        {onSearch && (
-                            <button type="button" onClick={onSearch} style={{ marginLeft: 8 }}>
-                                Zoeken
-                            </button>
-                        )}
-                    </div>
+                    React.createElement('div', null,
+                        React.createElement('input', {
+                            type: 'text',
+                            placeholder: 'Zoek op plaats, hotelnaam of thema',
+                            value: value,
+                            onChange: e => onChange(e.target.value),
+                            style: { width: '100%', marginBottom: 8 }
+                        }),
+                        onSearch && React.createElement('button', {
+                            type: 'button',
+                            onClick: onSearch,
+                            style: { marginLeft: 8 }
+                        }, 'Zoeken')
+                    )
                 );
             }
 
@@ -33,12 +33,15 @@ function freestays_search_form_shortcode() {
                         .then(data => setCountries(Array.isArray(data) ? data : []));
                 }, []);
                 return (
-                    <select value={value} onChange={e => onChange(e.target.value)}>
-                        <option value="">Kies een land</option>
-                        {countries.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
+                    React.createElement('select', {
+                        value: value,
+                        onChange: e => onChange(e.target.value)
+                    },
+                        React.createElement('option', { value: '' }, 'Kies een land'),
+                        countries.map(c =>
+                            React.createElement('option', { key: c.id, value: c.id }, c.name)
+                        )
+                    )
                 );
             }
 
@@ -54,12 +57,16 @@ function freestays_search_form_shortcode() {
                         .then(data => setResorts(Array.isArray(data) ? data : []));
                 }, [countryId]);
                 return (
-                    <select value={value} onChange={e => onChange(e.target.value)} disabled={!countryId}>
-                        <option value="">Kies een resort</option>
-                        {resorts.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                    </select>
+                    React.createElement('select', {
+                        value: value,
+                        onChange: e => onChange(e.target.value),
+                        disabled: !countryId
+                    },
+                        React.createElement('option', { value: '' }, 'Kies een resort'),
+                        resorts.map(r =>
+                            React.createElement('option', { key: r.id, value: r.id }, r.name)
+                        )
+                    )
                 );
             }
 
@@ -75,22 +82,37 @@ function freestays_search_form_shortcode() {
                         .then(data => setCities(Array.isArray(data) ? data : []));
                 }, [resortId]);
                 return (
-                    <select value={value} onChange={e => onChange(e.target.value)} disabled={!resortId}>
-                        <option value="">Kies een stad</option>
-                        {cities.map(city => (
-                            <option key={city.id} value={city.id}>{city.name}</option>
-                        ))}
-                    </select>
+                    React.createElement('select', {
+                        value: value,
+                        onChange: e => onChange(e.target.value),
+                        disabled: !resortId
+                    },
+                        React.createElement('option', { value: '' }, 'Kies een stad'),
+                        cities.map(city =>
+                            React.createElement('option', { key: city.id, value: city.id }, city.name)
+                        )
+                    )
                 );
             }
 
             function Filters({ onChange, values }) {
                 return (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <CountryDropdown value={values.country} onChange={v => onChange({ ...values, country: v, resort: '', city: '' })} />
-                        <ResortDropdown countryId={values.country} value={values.resort} onChange={v => onChange({ ...values, resort: v, city: '' })} />
-                        <CityDropdown resortId={values.resort} value={values.city} onChange={v => onChange({ ...values, city: v })} />
-                    </div>
+                    React.createElement('div', { style: { display: 'flex', gap: 8 } },
+                        React.createElement(CountryDropdown, {
+                            value: values.country,
+                            onChange: v => onChange({ ...values, country: v, resort: '', city: '' })
+                        }),
+                        React.createElement(ResortDropdown, {
+                            countryId: values.country,
+                            value: values.resort,
+                            onChange: v => onChange({ ...values, resort: v, city: '' })
+                        }),
+                        React.createElement(CityDropdown, {
+                            resortId: values.resort,
+                            value: values.city,
+                            onChange: v => onChange({ ...values, city: v })
+                        })
+                    )
                 );
             }
 
@@ -141,43 +163,69 @@ function freestays_search_form_shortcode() {
                 };
 
                 return (
-                    <form onSubmit={handleSearch}>
-                        <SearchInput value={search} onChange={setSearch} />
-                        <Filters values={filters} onChange={setFilters} />
-                        <div style={{ marginTop: 8 }}>
-                            <label>Check-in: <input type="date" value={checkin} onChange={e => setCheckin(e.target.value)} required /></label>
-                            <label style={{ marginLeft: 8 }}>Check-out: <input type="date" value={checkout} onChange={e => setCheckout(e.target.value)} required /></label>
-                        </div>
-                        <div style={{ marginTop: 8 }}>
-                            <label>Volwassenen: <input type="number" min="1" value={adults} onChange={e => setAdults(e.target.value)} /></label>
-                            <label style={{ marginLeft: 8 }}>Kinderen: <input type="number" min="0" value={children} onChange={e => setChildren(e.target.value)} /></label>
-                        </div>
-                        <button type="submit" disabled={loading} style={{ marginTop: 12 }}>
-                            {loading ? 'Zoeken...' : 'Zoek hotels'}
-                        </button>
-                        {error && <div style={{ color: 'red', marginTop: 8 }}>{error}</div>}
-                        {results && (
-                            <div style={{ marginTop: 20 }}>
-                                <h3>Zoekresultaten</h3>
-                                {Array.isArray(results.hotel_html) && results.hotel_html.length > 0 ? (
-                                    <div dangerouslySetInnerHTML={{ __html: results.hotel_html.join('') }} />
-                                ) : (
-                                    <div>Geen hotels gevonden.</div>
-                                )}
-                            </div>
-                        )}
-                    </form>
+                    React.createElement('form', { onSubmit: handleSearch },
+                        React.createElement(SearchInput, { value: search, onChange: setSearch }),
+                        React.createElement(Filters, { values: filters, onChange: setFilters }),
+                        React.createElement('div', { style: { marginTop: 8 } },
+                            React.createElement('label', null, 'Check-in: ',
+                                React.createElement('input', {
+                                    type: 'date',
+                                    value: checkin,
+                                    onChange: e => setCheckin(e.target.value),
+                                    required: true
+                                })
+                            ),
+                            React.createElement('label', { style: { marginLeft: 8 } }, 'Check-out: ',
+                                React.createElement('input', {
+                                    type: 'date',
+                                    value: checkout,
+                                    onChange: e => setCheckout(e.target.value),
+                                    required: true
+                                })
+                            )
+                        ),
+                        React.createElement('div', { style: { marginTop: 8 } },
+                            React.createElement('label', null, 'Volwassenen: ',
+                                React.createElement('input', {
+                                    type: 'number',
+                                    min: 1,
+                                    value: adults,
+                                    onChange: e => setAdults(e.target.value)
+                                })
+                            ),
+                            React.createElement('label', { style: { marginLeft: 8 } }, 'Kinderen: ',
+                                React.createElement('input', {
+                                    type: 'number',
+                                    min: 0,
+                                    value: children,
+                                    onChange: e => setChildren(e.target.value)
+                                })
+                            )
+                        ),
+                        React.createElement('button', {
+                            type: 'submit',
+                            disabled: loading,
+                            style: { marginTop: 12 }
+                        }, loading ? 'Zoeken...' : 'Zoek hotels'),
+                        error && React.createElement('div', { style: { color: 'red', marginTop: 8 } }, error),
+                        results && React.createElement('div', { style: { marginTop: 20 } },
+                            React.createElement('h3', null, 'Zoekresultaten'),
+                            Array.isArray(results.hotel_html) && results.hotel_html.length > 0
+                                ? React.createElement('div', { dangerouslySetInnerHTML: { __html: results.hotel_html.join('') } })
+                                : React.createElement('div', null, 'Geen hotels gevonden.')
+                        )
+                    )
                 );
             }
 
             function FiltersOnly() {
                 const [filters, setFilters] = React.useState({ country: '', resort: '', city: '' });
-                return <Filters values={filters} onChange={setFilters} />;
+                return React.createElement(Filters, { values: filters, onChange: setFilters });
             }
 
             function SearchBarOnly() {
                 const [search, setSearch] = React.useState('');
-                return <SearchInput value={search} onChange={setSearch} />;
+                return React.createElement(SearchInput, { value: search, onChange: setSearch });
             }
 
             // Mounters voor shortcodes
