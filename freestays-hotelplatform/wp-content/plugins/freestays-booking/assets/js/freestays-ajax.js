@@ -1,10 +1,25 @@
 <?php
-// Zorg dat deze PHP alleen in je enqueue/registratie-bestand staat, niet in je JS-bestand zelf!
-wp_localize_script(
-    'freestays-ajax-js',
-    'freestaysAjax',
-    array('ajax_url' => admin_url('admin-ajax.php'))
-);
+function freestays_enqueue_assets() {
+    wp_enqueue_style(
+        'freestays-css',
+        plugins_url('assets/css/freestays.css', __FILE__),
+        array(),
+        filemtime(plugin_dir_path(__FILE__) . 'assets/css/freestays.css')
+    );
+    wp_enqueue_script(
+        'freestays-ajax-js',
+        plugins_url('assets/js/freestays-ajax.js', __FILE__),
+        array('jquery'),
+        filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays-ajax.js'),
+        true
+    );
+    wp_localize_script(
+        'freestays-ajax-js',
+        'freestaysAjax',
+        array('ajax_url' => admin_url('admin-ajax.php'))
+    );
+}
+add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
 ?>
 
 // filepath: /workspaces/shorttrips/freestays-hotelplatform/wp-content/plugins/freestays-booking/assets/js/freestays-ajax.js
@@ -85,5 +100,3 @@ jQuery(document).ready(function($) {
         });
     });
 });
-
-graag een formulier, 

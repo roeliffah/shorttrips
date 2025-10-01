@@ -232,33 +232,6 @@ function freestays_search_shortcode($atts) {
     // Vrij zoekveld
     $output .= '<label for="freestays_search">Zoek op hotel, regio of land:</label>';
     $output .= '<input type="text" name="freestays_search" id="freestays_search" value="' . esc_attr($search_query) . '" placeholder="Bijv. Alanya, Turkije, Hotelnaam">';
-    // Dropdown landen
-    $output .= '<label for="freestays_country">Land:</label>';
-    $output .= '<select name="freestays_country" id="freestays_country">';
-    $output .= '<option value="">Kies land</option>';
-    foreach ($countries as $country) {
-        $selected = ($country_id === $country['id']) ? ' selected' : '';
-        $output .= '<option value="' . esc_attr($country['id']) . '"' . $selected . '>' . esc_html($country['name']) . '</option>';
-    }
-    $output .= '</select>';
-    // Dropdown steden
-    $output .= '<label for="freestays_city">Stad:</label>';
-    $output .= '<select name="freestays_city" id="freestays_city">';
-    $output .= '<option value="">Kies stad</option>';
-    foreach ($cities as $city) {
-        $selected = ($city_id === $city['id']) ? ' selected' : '';
-        $output .= '<option value="' . esc_attr($city['id']) . '"' . $selected . '>' . esc_html($city['name']) . '</option>';
-    }
-    $output .= '</select>';
-    // Dropdown resorts
-    $output .= '<label for="freestays_resort">Resort:</label>';
-    $output .= '<select name="freestays_resort" id="freestays_resort">';
-    $output .= '<option value="">Kies resort (optioneel)</option>';
-    foreach ($resorts as $resort) {
-        $selected = ($resort_id === $resort['id']) ? ' selected' : '';
-        $output .= '<option value="' . esc_attr($resort['id']) . '"' . $selected . '>' . esc_html($resort['name']) . '</option>';
-    }
-    $output .= '</select>';
     // Overige velden
     $output .= '<label for="freestays_checkin">Check-in:</label>';
     $output .= '<input type="date" name="freestays_checkin" id="freestays_checkin" value="' . esc_attr($checkin) . '" required>';
@@ -270,7 +243,37 @@ function freestays_search_shortcode($atts) {
     $output .= '<input type="number" name="freestays_children" id="freestays_children" value="' . esc_attr($children) . '" min="0">';
     $output .= '<label for="freestays_rooms">Kamers:</label>';
     $output .= '<input type="number" name="freestays_rooms" id="freestays_rooms" value="' . esc_attr($rooms) . '" min="1" required>';
-    $output .= '<button type="submit">Zoeken</button>';
+    // Zet de 3 dropdowns ONDERAAN het formulier:
+    $output .= '<div style="margin-top: 18px;">';
+    $output .= '<label for="freestays_country">Land:</label>';
+    $output .= '<select name="freestays_country" id="freestays_country">';
+    $output .= '<option value="">Kies land</option>';
+    foreach ($countries as $country) {
+        $selected = ($country_id === $country['id']) ? ' selected' : '';
+        $output .= '<option value="' . esc_attr($country['id']) . '"' . $selected . '>' . esc_html($country['name']) . '</option>';
+    }
+    $output .= '</select>';
+
+    $output .= '<label for="freestays_city" style="margin-left:10px;">Stad:</label>';
+    $output .= '<select name="freestays_city" id="freestays_city">';
+    $output .= '<option value="">Kies stad</option>';
+    foreach ($cities as $city) {
+        $selected = ($city_id === $city['id']) ? ' selected' : '';
+        $output .= '<option value="' . esc_attr($city['id']) . '"' . $selected . '>' . esc_html($city['name']) . '</option>';
+    }
+    $output .= '</select>';
+
+    $output .= '<label for="freestays_resort" style="margin-left:10px;">Resort:</label>';
+    $output .= '<select name="freestays_resort" id="freestays_resort">';
+    $output .= '<option value="">Kies resort (optioneel)</option>';
+    foreach ($resorts as $resort) {
+        $selected = ($resort_id === $resort['id']) ? ' selected' : '';
+        $output .= '<option value="' . esc_attr($resort['id']) . '"' . $selected . '>' . esc_html($resort['name']) . '</option>';
+    }
+    $output .= '</select>';
+    $output .= '</div>';
+
+    $output .= '<button type="submit" style="margin-top:18px;">Zoeken</button>';
     $output .= '</form>';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
@@ -333,6 +336,8 @@ add_shortcode('freestays_search_classic', 'freestays_search_shortcode');
 if (!function_exists('freestays_ajax_get_cities')) {
     add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
     add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
+    add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
+    add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
     function freestays_ajax_get_cities() {
         $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
         if (empty($country_id)) {
@@ -341,11 +346,7 @@ if (!function_exists('freestays_ajax_get_cities')) {
         $cities = freestays_get_cities($country_id);
         wp_send_json($cities);
     }
-}
 
-if (!function_exists('freestays_ajax_get_resorts')) {
-    add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
-    add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
     function freestays_ajax_get_resorts() {
         $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
         if (empty($city_id)) {
@@ -390,6 +391,7 @@ add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
 
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/hotel-list.php';
 require_once __DIR__ . '/includes/class-searchbar-shortcode.php';
+require_once __DIR__ . '/includes/shortcodes/filters.php';
 
 // Test Sunhotels API shortcode
 function freestays_test_sunhotels_api() {
