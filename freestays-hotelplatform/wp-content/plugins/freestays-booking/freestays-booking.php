@@ -419,7 +419,6 @@ add_shortcode('freestays_test_api', 'freestays_test_sunhotels_api');
 
 error_log('API_URL uit .env: ' . ($_ENV['API_URL'] ?? 'NIET GEZET'));
 
-<?php
 function freestays_enqueue_react_search() {
     wp_enqueue_script(
         'freestays-react-search',
