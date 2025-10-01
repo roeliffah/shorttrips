@@ -86,7 +86,6 @@ function freestays_search_form_shortcode() {
                 );
             }
 
-            // Filters component (alleen dropdowns)
             function Filters({ onChange, values }) {
                 return (
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -97,7 +96,6 @@ function freestays_search_form_shortcode() {
                 );
             }
 
-            // Volledig zoekformulier
             function HotelSearchForm() {
                 const [search, setSearch] = React.useState('');
                 const [filters, setFilters] = React.useState({ country: '', resort: '', city: '' });
@@ -115,7 +113,6 @@ function freestays_search_form_shortcode() {
                     setLoading(true);
                     setResults(null);
 
-                    // Zoek op city of op vrije tekst
                     let params = new URLSearchParams({
                         checkin,
                         checkout,
@@ -175,13 +172,11 @@ function freestays_search_form_shortcode() {
                 );
             }
 
-            // Alleen filters (dropdowns)
             function FiltersOnly() {
                 const [filters, setFilters] = React.useState({ country: '', resort: '', city: '' });
                 return <Filters values={filters} onChange={setFilters} />;
             }
 
-            // Alleen zoekveld
             function SearchBarOnly() {
                 const [search, setSearch] = React.useState('');
                 return <SearchInput value={search} onChange={setSearch} />;
@@ -199,4 +194,13 @@ function freestays_search_form_shortcode() {
             };
         })();
     </script>
+    <?php
 }
+
+wp_enqueue_script(
+    'freestays-react-search',
+    plugins_url('assets/js/freestays-react-search.js', __FILE__),
+    array('react', 'react-dom'), // als je React via WordPress laadt
+    filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays-react-search.js'),
+    true
+);
