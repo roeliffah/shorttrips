@@ -328,86 +328,30 @@ add_shortcode('freestays_search_classic', 'freestays_search_shortcode');
 /**
  * AJAX handlers
  */
-add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
-add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
-function freestays_ajax_get_cities() {
-    $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
-    if (empty($country_id)) {
-        wp_send_json([]);
+if (!function_exists('freestays_ajax_get_cities')) {
+    add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
+    add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
+    function freestays_ajax_get_cities() {
+        $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
+        if (empty($country_id)) {
+            wp_send_json([]);
+        }
+        $cities = freestays_get_cities($country_id);
+        wp_send_json($cities);
     }
-    $cities = freestays_get_cities($country_id);
-    wp_send_json($cities);
 }
 
-add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
-add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
-function freestays_ajax_get_resorts() {
-    $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
-    if (empty($city_id)) {
-        wp_send_json([]);
+if (!function_exists('freestays_ajax_get_resorts')) {
+    add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
+    add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
+    function freestays_ajax_get_resorts() {
+        $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
+        if (empty($city_id)) {
+            wp_send_json([]);
+        }
+        $resorts = freestays_get_resorts($city_id);
+        wp_send_json($resorts);
     }
-    $resorts = freestays_get_resorts($city_id);
-    wp_send_json($resorts);
-}
-
-/**
- * CSS en JS inladen
- */
-function freestays_enqueue_assets() {
-    wp_enqueue_style(
-        'freestays-css',
-        plugins_url('assets/css/freestays.css', __FILE__),
-        array(),
-        filemtime(plugin_dir_path(__FILE__) . 'assets/css/freestays.css')
-    );
-    wp_enqueue_script(
-        'freestays-ajax-js',
-        plugins_url('assets/js/freestays-ajax.js', __FILE__),
-        array('jquery'),
-        filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays-ajax.js'),
-        true
-    );
-    wp_localize_script(
-        'freestays-ajax-js',
-        'freestaysAjax',
-        array('ajax_url' => admin_url('admin-ajax.php'))
-    );
-    wp_enqueue_script(
-        'freestays-js',
-        plugins_url('assets/js/freestays.js', __FILE__),
-        array(),
-        filemtime(plugin_dir_path(__FILE__) . 'assets/js/freestays.js'),
-        true
-    );
-}
-add_action('wp_enqueue_scripts', 'freestays_enqueue_assets');
-
-require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/hotel-list.php';
-require_once __DIR__ . '/includes/class-searchbar-shortcode.php';
-
-/**
- * AJAX handlers
- */
-add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
-add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
-function freestays_ajax_get_cities() {
-    $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
-    if (empty($country_id)) {
-        wp_send_json([]);
-    }
-    $cities = freestays_get_cities($country_id);
-    wp_send_json($cities);
-}
-
-add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
-add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
-function freestays_ajax_get_resorts() {
-    $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
-    if (empty($city_id)) {
-        wp_send_json([]);
-    }
-    $resorts = freestays_get_resorts($city_id);
-    wp_send_json($resorts);
 }
 
 /**
