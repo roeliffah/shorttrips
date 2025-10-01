@@ -394,8 +394,10 @@ if ($action === 'quicksearch') {
         echo json_encode(['destination_id' => null, 'error' => 'Lege city-naam opgegeven']);
         exit;
     }
-    $stmt = $pdo->prepare("SELECT destination_id FROM bravo_destinations WHERE destination_name = ? AND destination_id IS NOT NULL AND destination_id != 0 LIMIT 1");
-    $stmt->execute([$city]);
+    error_log('destination-id request city: ' . $city);
+    // Zoek op LIKE, hoofdletterONgevoelig
+    $stmt = $pdo->prepare("SELECT destination_id FROM bravo_destinations WHERE LOWER(destination_name) LIKE LOWER(?) AND destination_id IS NOT NULL AND destination_id != 0 LIMIT 1");
+    $stmt->execute(['%' . $city . '%']);
     $row = $stmt->fetch();
     echo json_encode(['destination_id' => $row ? $row['destination_id'] : null]);
     exit;
