@@ -274,7 +274,7 @@ function freestays_search_shortcode($atts) {
     $output .= '</form>';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
-        $client = new Sunhotels_Client($_ENV['API_URL'], $_ENV['API_USER'], $_ENV['API_PASS']);
+        $client = new Sunhotels_Client();
         try {
             $params = [
                 'country'   => $country_id,

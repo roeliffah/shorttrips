@@ -8,16 +8,16 @@ class Sunhotels_Client {
     private $apiUrl;
 
     public function __construct() {
-        $envPath = dirname(__DIR__, 3) . '/config/.env';
-        if (file_exists($envPath)) {
-            $env = parse_ini_file($envPath);
-            $this->apiUser = $env['API_USER'] ?? '';
-            $this->apiPass = $env['API_PASS'] ?? '';
-            $this->apiUrl  = $env['API_URL'] ?? '';
-        }
+        $this->apiUser = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+        $this->apiPass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+        $this->apiUrl  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
     }
 
     public function searchV3($params) {
+        if (empty($this->apiUrl)) {
+            throw new Exception('API URL is niet ingesteld!');
+        }
+
         $xml = $this->buildSearchV3Xml($params);
         $opts = [
             'http' => [
