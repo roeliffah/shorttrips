@@ -60,7 +60,7 @@ class Sunhotels_Client {
             . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
             . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
             . '<soap:Body>'
-            . '<SearchHotels xmlns="http://xml.sunhotels.net/15/">'
+            . '<SearchHotels xmlns="http://xml.sunhotels.net/">'
             . '<userName>' . esc_html($this->api_user) . '</userName>'
             . '<password>' . esc_html($this->api_pass) . '</password>'
             . '<language>en</language>'
@@ -113,7 +113,7 @@ class Sunhotels_Client {
             'timeout' => 30,
             'headers' => [
                 'Content-Type' => 'text/xml; charset=utf-8',
-                'SOAPAction'   => 'http://xml.sunhotels.net/15/SearchHotels', // of andere actie
+                'SOAPAction'   => '"http://xml.sunhotels.net/SearchHotels"',
             ],
             'body' => $soap_body,
         ]);
@@ -688,4 +688,91 @@ class Sunhotels_Client {
             'hotels' => $hotels,
         ];
     }
+}
+
+/**
+ * Stuur een SearchHotels SOAP-request naar Sunhotels.
+ * @param array $args Associatieve array met alle mogelijke zoekvelden.
+ * @return string|WP_Error XML-response of foutmelding.
+ */
+function freestays_sunhotels_search($args) {
+    $api_url  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
+    $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
+    $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
+
+    // Verplichte velden controleren
+    $required = [
+        'language', 'currencies', 'checkInDate', 'checkOutDate',
+        'numberOfRooms', 'numberOfAdults'
+    ];
+    foreach ($required as $field) {
+        if (empty($args[$field])) {
+            return new WP_Error('missing_field', "Veld '$field' is verplicht.");
+        }
+    }
+    // Minimaal één van deze drie moet gevuld zijn
+    if (empty($args['destinationID']) && empty($args['hotelIDs']) && empty($args['resortIDs'])) {
+        return new WP_Error('missing_field', "Minimaal één van destinationID, hotelIDs of resortIDs is verplicht.");
+    }
+
+    // SOAP-body opbouwen
+    $soap_body = '<?xml version="1.0" encoding="utf-8"?>'
+        . '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+        . 'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+        . 'xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+        . '<soap:Body>'
+        . '<SearchHotels xmlns="http://xml.sunhotels.net/">'
+        . '<userName>' . esc_html($api_user) . '</userName>'
+        . '<password>' . esc_html($api_pass) . '</password>'
+        . '<language>' . esc_html($args['language']) . '</language>'
+        . '<currencies>' . esc_html($args['currencies']) . '</currencies>'
+        . '<checkInDate>' . esc_html($args['checkInDate']) . '</checkInDate>'
+        . '<checkOutDate>' . esc_html($args['checkOutDate']) . '</checkOutDate>'
+        . '<numberOfRooms>' . intval($args['numberOfRooms']) . '</numberOfRooms>';
+
+    // Eén van deze drie verplicht
+    if (!empty($args['destinationID'])) {
+        $soap_body .= '<destinationID>' . esc_html($args['destinationID']) . '</destinationID>';
+    }
+    if (!empty($args['hotelIDs'])) {
+        $soap_body .= '<hotelIDs>' . esc_html($args['hotelIDs']) . '</hotelIDs>';
+    }
+    if (!empty($args['resortIDs'])) {
+        $soap_body .= '<resortIDs>' . esc_html($args['resortIDs']) . '</resortIDs>';
+    }
+
+    // Optionele velden
+    $optional_fields = [
+        'destination', 'accommodationTypes', 'numberOfChildren', 'childrenAges', 'infant', 'sortBy', 'sortOrder',
+        'exactDestinationMatch', 'blockSuperdeal', 'mealIds', 'showCoordinates', 'showReviews',
+        'referencePointLatitude', 'referencePointLongitude', 'maxDistanceFromReferencePoint',
+        'minStarRating', 'maxStarRating', 'featureIds', 'minPrice', 'maxPrice', 'themeIds',
+        'excludeSharedRooms', 'excludeSharedFacilities', 'prioritizedHotelIds', 'totalRoomsInBatch',
+        'paymentMethodId', 'customerCountry', 'showRoomTypeName'
+    ];
+    foreach ($optional_fields as $field) {
+        if (isset($args[$field]) && $args[$field] !== '') {
+            $soap_body .= "<$field>" . esc_html($args[$field]) . "</$field>";
+        }
+    }
+
+    // Altijd verplicht
+    $soap_body .= '<b2c>0</b2c>';
+    $soap_body .= '<numberOfAdults>' . intval($args['numberOfAdults']) . '</numberOfAdults>';
+
+    $soap_body .= '</SearchHotels></soap:Body></soap:Envelope>';
+
+    $response = wp_remote_post($api_url, [
+        'body'    => $soap_body,
+        'headers' => [
+            'Content-Type' => 'text/xml; charset=utf-8',
+            'SOAPAction'   => '"http://xml.sunhotels.net/SearchHotels"',
+        ],
+        'timeout' => 30,
+    ]);
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+    return wp_remote_retrieve_body($response);
 }
