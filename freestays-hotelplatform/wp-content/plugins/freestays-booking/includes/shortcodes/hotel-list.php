@@ -13,9 +13,6 @@ function freestays_hotel_list_shortcode($atts) {
     $api_user = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
     $api_pass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
 
-    // Eventueel debuggen:
-    error_log('API_URL: ' . ($api_url ?: 'NIET GEZET'));
-
     require_once dirname(__DIR__) . '/api/class-sunhotels-client.php';
     $client = new Sunhotels_Client($api_url, $api_user, $api_pass);
 
@@ -32,10 +29,8 @@ function freestays_hotel_list_shortcode($atts) {
     ob_start();
     echo '<div class="freestays-hotel-list">';
     foreach ($hotels as $hotel) {
-        echo '<div class="hotel-item">';
-        echo '<h3>' . esc_html($hotel['name']) . '</h3>';
-        echo '<p>' . esc_html($hotel['city']) . '</p>';
-        echo '</div>';
+        $hotel_data = $hotel; // Zorg dat dit overeenkomt met je hotel-card.php
+        include dirname(__DIR__) . '/../templates/hotel-card.php';
     }
     echo '</div>';
     return ob_get_clean();
