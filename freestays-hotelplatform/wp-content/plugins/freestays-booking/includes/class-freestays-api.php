@@ -1,5 +1,4 @@
 <?php
-<?php
 /**
  * REST API endpoint voor hotel zoeken
  */
