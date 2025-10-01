@@ -1,5 +1,4 @@
 <?php
-<?php
 function freestays_filters_shortcode() {
     $countries = freestays_get_countries();
 
