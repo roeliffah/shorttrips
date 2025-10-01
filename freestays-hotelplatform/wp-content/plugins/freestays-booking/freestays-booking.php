@@ -276,18 +276,20 @@ function freestays_search_shortcode($atts) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
         $client = new Sunhotels_Client($_ENV['API_URL'], $_ENV['API_USER'], $_ENV['API_PASS']);
         try {
-            $hotels = $client->searchHotels(
-                $country_id,
-                $city_id,
-                $resort_id,
-                $search_query, // destinationId of zoekterm
-                $checkin,
-                $checkout,
-                $adults,
-                $children,
-                $rooms,
-                $child_ages
-            );
+            $params = [
+                'country'   => $country_id,
+                'city_id'   => $city_id,
+                'resort_id' => $resort_id,
+                'q'         => $search_query,
+                'start'     => $checkin,
+                'end'       => $checkout,
+                'adults'    => $adults,
+                'children'  => $children,
+                'room'      => $rooms,
+                // 'child_ages' => $child_ages, // indien ondersteund
+            ];
+            $result = $client->searchV3($params);
+            $hotels = $result['hotels'] ?? [];
         } catch (Exception $e) {
             $output .= '<div class="freestays-search-results">';
             $output .= '<p style="color:red;">Fout bij ophalen hotels: ' . esc_html($e->getMessage()) . '</p>';
