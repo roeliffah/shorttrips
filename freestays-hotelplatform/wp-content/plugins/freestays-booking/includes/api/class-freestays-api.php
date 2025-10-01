@@ -250,8 +250,67 @@ add_shortcode('freestays_searchbar', function () {
     return ob_get_clean();
 });
 
-// In je REST endpoint in class-freestays-api.php
-ob_start();
-include plugin_dir_path(__FILE__) . '../../templates/hotel-card.php';
-// Gebruik $hotel als variabele in hotel-card.php
-$html = ob_get_clean();
+// class-sunhotels-client.php
+class Sunhotels_Client {
+    private $apiUser;
+    private $apiPass;
+    private $apiUrl;
+
+    public function __construct() {
+        $env = parse_ini_file(__DIR__ . '/../../../config/.env');
+        $this->apiUser = $env['API_USER'];
+        $this->apiPass = $env['API_PASS'];
+        $this->apiUrl  = $env['API_URL'];
+    }
+
+    public function searchV3($params) {
+        $xml = $this->buildSearchV3Xml($params);
+        $opts = [
+            'http' => [
+                'method' => "POST",
+                'header' => "Content-Type: text/xml; charset=utf-8\r\n",
+                'content' => $xml,
+                'timeout' => 30
+            ]
+        ];
+        $context = stream_context_create($opts);
+        $response = file_get_contents($this->apiUrl, false, $context);
+        if ($response === false) return null;
+        $parsed = simplexml_load_string($response, null, 0, 'http://xml.sunhotels.net/15/');
+        // Parse hotels uit de response (vereenvoudigd)
+        $hotels = []; // Vul dit aan met echte parsing
+        return ['hotels' => $hotels];
+    }
+
+    private function buildSearchV3Xml($params) {
+        $checkIn = htmlspecialchars($params['start'] ?? date('Y-m-d'));
+        $checkOut = htmlspecialchars($params['end'] ?? date('Y-m-d', strtotime('+1 day')));
+        $rooms = (int)($params['room'] ?? 1);
+        $adults = (int)($params['adults'] ?? 2);
+        $children = (int)($params['children'] ?? 0);
+        $destinationID = htmlspecialchars($params['city_id'] ?? $params['resort_id'] ?? $params['country'] ?? $params['q'] ?? '');
+        $blockSuperdeal = 'ja';
+        return <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <SearchV3 xmlns="http://xml.sunhotels.net/15/">
+      <userName>{$this->apiUser}</userName>
+      <password>{$this->apiPass}</password>
+      <language>EN</language>
+      <currencies>EUR</currencies>
+      <checkInDate>{$checkIn}</checkInDate>
+      <checkOutDate>{$checkOut}</checkOutDate>
+      <numberOfRooms>{$rooms}</numberOfRooms>
+      <destinationID>{$destinationID}</destinationID>
+      <numberOfAdults>{$adults}</numberOfAdults>
+      <numberOfChildren>{$children}</numberOfChildren>
+      <blockSuperdeal>{$blockSuperdeal}</blockSuperdeal>
+    </SearchV3>
+  </soap:Body>
+</soap:Envelope>
+XML;
+    }
+}

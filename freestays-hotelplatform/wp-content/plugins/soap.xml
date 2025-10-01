@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <SearchV3 xmlns="http://xml.sunhotels.net/15/">
+      <userName>FreestaysTEST</userName>
+      <password>Vision2024!@</password>
+      <language>EN</language>
+      <currencies>EUR</currencies>
+      <checkInDate>2025-10-01</checkInDate>
+      <checkOutDate>2025-10-02</checkOutDate>
+      <numberOfRooms>1</numberOfRooms>
+      <destinationID>13037</destinationID>
+      <numberOfAdults>2</numberOfAdults>
+      <numberOfChildren>0</numberOfChildren>
+      <blockSuperdeal>ja</blockSuperdeal>
+    </SearchV3>
+  </soap:Body>
+</soap:Envelope>
