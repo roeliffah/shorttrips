@@ -72,7 +72,18 @@ add_action('rest_api_init', function () {
             $children = $request->get_param('children') ?: 0;
             $rooms   = $request->get_param('rooms') ?: 1;
 
+            error_log('search-by-city aangeroepen');
+            error_log('Params: ' . print_r([
+                'city' => $city,
+                'checkin' => $checkin,
+                'checkout' => $checkout,
+                'adults' => $adults,
+                'children' => $children,
+                'rooms' => $rooms,
+            ], true));
+
             if (!$city || !$checkin || !$checkout) {
+                error_log('search-by-city: ontbrekende parameters');
                 return new WP_Error('missing_params', 'Vereiste parameters ontbreken.', ['status' => 400]);
             }
 
@@ -85,7 +96,10 @@ add_action('rest_api_init', function () {
 
             $result = $client->zoekHotelsOpPlaats($city, $checkin, $checkout, $adults, $children, $rooms);
 
+            error_log('Resultaat van zoekHotelsOpPlaats: ' . print_r($result, true));
+
             if (isset($result['error'])) {
+                error_log('search-by-city: error: ' . $result['error']);
                 return new WP_Error('search_failed', $result['error'], ['status' => 500]);
             }
 
