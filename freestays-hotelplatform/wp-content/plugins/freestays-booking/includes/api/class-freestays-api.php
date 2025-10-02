@@ -151,6 +151,14 @@ add_action('rest_api_init', function () {
         },
         'permission_callback' => '__return_true',
     ]);
+
+    register_rest_route('freestays/v1', '/test', [
+        'methods'  => 'GET',
+        'callback' => function($request) {
+            return rest_ensure_response(['test' => 'ok']);
+        },
+        'permission_callback' => '__return_true',
+    ]);
 });
 
 // Shortcode: volledig zoekformulier (vrij veld + dropdowns)
