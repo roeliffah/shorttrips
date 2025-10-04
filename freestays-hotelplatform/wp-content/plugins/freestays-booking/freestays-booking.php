@@ -207,43 +207,16 @@ function freestays_get_resorts($city_id) {
 
 // Shortcode handler (voorbeeld, alleen relevante searchHotels-aanroep)
 function freestays_search_shortcode($atts) {
-    $countries = freestays_get_countries();
+    $countries = freestays_bridge_get_countries();
     $country_id = isset($_POST['freestays_country']) ? sanitize_text_field($_POST['freestays_country']) : '';
-    $cities = $country_id ? freestays_get_cities($country_id) : [];
-    $city_id = isset($_POST['freestays_city']) ? sanitize_text_field($_POST['freestays_city']) : '';
-    $resorts = $city_id ? freestays_get_resorts($city_id) : [];
-    $resort_id = isset($_POST['freestays_resort']) ? sanitize_text_field($_POST['freestays_resort']) : '';
-
+    $regions = $country_id ? freestays_bridge_get_regions($country_id) : [];
+    $region_id = isset($_POST['freestays_city']) ? sanitize_text_field($_POST['freestays_city']) : '';
+    $cities = $region_id ? freestays_bridge_get_cities($region_id) : [];
     $search_query = isset($_POST['freestays_search']) ? sanitize_text_field($_POST['freestays_search']) : '';
-    $checkin      = isset($_POST['freestays_checkin']) ? sanitize_text_field($_POST['freestays_checkin']) : '';
-    $checkout     = isset($_POST['freestays_checkout']) ? sanitize_text_field($_POST['freestays_checkout']) : '';
-    $adults       = isset($_POST['freestays_adults']) ? intval($_POST['freestays_adults']) : 2;
-    $children     = isset($_POST['freestays_children']) ? intval($_POST['freestays_children']) : 0;
-    $rooms        = isset($_POST['freestays_rooms']) ? intval($_POST['freestays_rooms']) : 1;
-
-    $child_ages = [];
-    if ($children > 0) {
-        for ($i = 1; $i <= $children; $i++) {
-            $child_ages[] = isset($_POST["freestays_child_age_$i"]) ? intval($_POST["freestays_child_age_$i"]) : 0;
-        }
-    }
 
     $output = '<form method="post" class="freestays-search-form">';
-    // Vrij zoekveld
     $output .= '<label for="freestays_search">Zoek op hotel, regio of land:</label>';
     $output .= '<input type="text" name="freestays_search" id="freestays_search" value="' . esc_attr($search_query) . '" placeholder="Bijv. Alanya, Turkije, Hotelnaam">';
-    // Overige velden
-    $output .= '<label for="freestays_checkin">Check-in:</label>';
-    $output .= '<input type="date" name="freestays_checkin" id="freestays_checkin" value="' . esc_attr($checkin) . '" required>';
-    $output .= '<label for="freestays_checkout">Check-out:</label>';
-    $output .= '<input type="date" name="freestays_checkout" id="freestays_checkout" value="' . esc_attr($checkout) . '" required>';
-    $output .= '<label for="freestays_adults">Volwassenen:</label>';
-    $output .= '<input type="number" name="freestays_adults" id="freestays_adults" value="' . esc_attr($adults) . '" min="1" required>';
-    $output .= '<label for="freestays_children">Kinderen:</label>';
-    $output .= '<input type="number" name="freestays_children" id="freestays_children" value="' . esc_attr($children) . '" min="0">';
-    $output .= '<label for="freestays_rooms">Kamers:</label>';
-    $output .= '<input type="number" name="freestays_rooms" id="freestays_rooms" value="' . esc_attr($rooms) . '" min="1" required>';
-    // Zet de 3 dropdowns ONDERAAN het formulier:
     $output .= '<div style="margin-top: 18px;">';
     $output .= '<label for="freestays_country">Land:</label>';
     $output .= '<select name="freestays_country" id="freestays_country">';
@@ -254,73 +227,68 @@ function freestays_search_shortcode($atts) {
     }
     $output .= '</select>';
 
-    $output .= '<label for="freestays_city" style="margin-left:10px;">Stad:</label>';
+    $output .= '<label for="freestays_city" style="margin-left:10px;">Regio:</label>';
     $output .= '<select name="freestays_city" id="freestays_city">';
-    $output .= '<option value="">Kies stad</option>';
-    foreach ($cities as $city) {
-        $selected = ($city_id === $city['id']) ? ' selected' : '';
-        $output .= '<option value="' . esc_attr($city['id']) . '"' . $selected . '>' . esc_html($city['name']) . '</option>';
-    }
-    $output .= '</select>';
-
-    $output .= '<label for="freestays_resort" style="margin-left:10px;">Resort:</label>';
-    $output .= '<select name="freestays_resort" id="freestays_resort">';
-    $output .= '<option value="">Kies resort (optioneel)</option>';
-    foreach ($resorts as $resort) {
-        $selected = ($resort_id === $resort['id']) ? ' selected' : '';
-        $output .= '<option value="' . esc_attr($resort['id']) . '"' . $selected . '>' . esc_html($resort['name']) . '</option>';
+    $output .= '<option value="">Kies regio</option>';
+    foreach ($regions as $region) {
+        $selected = ($region_id === $region['id']) ? ' selected' : '';
+        $output .= '<option value="' . esc_attr($region['id']) . '"' . $selected . '>' . esc_html($region['name']) . '</option>';
     }
     $output .= '</select>';
     $output .= '</div>';
-
     $output .= '<button type="submit" style="margin-top:18px;">Zoeken</button>';
     $output .= '</form>';
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($country_id) || !empty($search_query))) {
-        $client = new Sunhotels_Client();
-        try {
-            $params = [
-                'country'   => $country_id,
-                'city_id'   => $city_id,
-                'resort_id' => $resort_id,
-                'q'         => $search_query,
-                'start'     => $checkin,
-                'end'       => $checkout,
-                'adults'    => $adults,
-                'children'  => $children,
-                'room'      => $rooms,
-                // 'child_ages' => $child_ages, // indien ondersteund
-            ];
-            $result = $client->searchV3($params);
-            $hotels = $result['hotels'] ?? [];
-        } catch (Exception $e) {
-            $output .= '<div class="freestays-search-results">';
-            $output .= '<p style="color:red;">Fout bij ophalen hotels: ' . esc_html($e->getMessage()) . '</p>';
-            $output .= '</div>';
-            return $output;
+    // Resultaten tonen na POST
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($search_query) || !empty($country_id) || !empty($region_id))) {
+        // Bouw de zoekterm op
+        $params = [];
+        if (!empty($search_query)) $params['q'] = $search_query;
+        if (!empty($country_id)) $params['country_id'] = $country_id;
+        if (!empty($region_id)) $params['region_id'] = $region_id;
+
+        // Bouw de bridge-url
+        $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+        $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+        $url = $bridge_url . '?key=' . urlencode($bridge_key) . '&action=hotels';
+        foreach ($params as $k => $v) {
+            $url .= '&' . urlencode($k) . '=' . urlencode($v);
         }
 
-        $output .= '<div class="freestays-search-results" style="display:flex;flex-wrap:wrap;gap:16px;">';
-        if (is_array($hotels) && count($hotels) > 0) {
-            foreach ($hotels as $hotel) {
-                $output .= '<div class="freestays-hotel-card" style="border:1px solid #ccc;padding:16px;width:300px;">';
-                $output .= '<strong>' . esc_html($hotel['name'] ?? 'Onbekend hotel') . '</strong><br>';
-                if (!empty($hotel['city'])) {
-                    $output .= '<span>' . esc_html($hotel['city']) . '</span><br>';
-                }
-                if (!empty($hotel['address'])) {
-                    $output .= '<small>' . esc_html($hotel['address']) . '</small><br>';
-                }
-                if (!empty($hotel['image'])) {
-                    $output .= '<img src="' . esc_url($hotel['image']) . '" alt="' . esc_attr($hotel['name'] ?? '') . '" style="max-width:100%;height:auto;"><br>';
-                }
-                if (!empty($hotel['price'])) {
-                    $output .= '<div style="margin-top:8px;"><strong>Vanaf: ' . esc_html($hotel['price']) . '</strong></div>';
-                }
-                $output .= '</div>';
+        $response = wp_remote_get($url, ['timeout' => 20]);
+        $hotels = [];
+        if (!is_wp_error($response)) {
+            $body = wp_remote_retrieve_body($response);
+            $data = json_decode($body, true);
+            if (is_array($data)) {
+                $hotels = $data;
             }
-        } else {
-            $output .= '<p>Geen hotels gevonden voor deze zoekopdracht.</p>';
+        }
+
+        $output .= '<div class="freestays-search-results" style="display:flex;flex-wrap:wrap;gap:16px;margin-top:24px;">';
+        $count = 0;
+        foreach ($hotels as $hotel) {
+            if (isset($hotel['availability']) && !$hotel['availability']) continue;
+            $output .= '<div class="freestays-hotel-card" style="border:1px solid #ccc;padding:16px;width:300px;">';
+            $output .= '<strong>' . esc_html($hotel['title'] ?? $hotel['name'] ?? 'Onbekend hotel') . '</strong><br>';
+            if (!empty($hotel['city'])) {
+                $output .= '<span>' . esc_html($hotel['city']) . '</span><br>';
+            }
+            if (!empty($hotel['address'])) {
+                $output .= '<small>' . esc_html($hotel['address']) . '</small><br>';
+            }
+            if (!empty($hotel['image']) || !empty($hotel['thumbnail'])) {
+                $img = $hotel['image'] ?? $hotel['thumbnail'];
+                $output .= '<img src="' . esc_url($img) . '" alt="' . esc_attr($hotel['title'] ?? $hotel['name'] ?? '') . '" style="max-width:100%;height:auto;"><br>';
+            }
+            if (!empty($hotel['price'])) {
+                $output .= '<div style="margin-top:8px;"><strong>Vanaf: ' . esc_html($hotel['price']) . '</strong></div>';
+            }
+            $output .= '</div>';
+            $count++;
+        }
+        if ($count === 0) {
+            $output .= '<p>Geen beschikbare hotels gevonden voor deze zoekopdracht.</p>';
         }
         $output .= '</div>';
     }
@@ -446,3 +414,162 @@ require_once __DIR__ . '/includes/class-freestays-api.php';
 
 // Eventueel extra initialisatie
 // add_action('init', ...);
+
+/**
+ * Haal landen op via de bridge op freestays.eu
+ */
+function freestays_bridge_get_countries() {
+    $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+    $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+    if (empty($bridge_url) || empty($bridge_key)) {
+        error_log('Bridge config ontbreekt!');
+        return [];
+    }
+
+    // Key en action als GET-parameters
+    $url = $bridge_url . '?key=' . urlencode($bridge_key) . '&action=countries';
+
+    $response = wp_remote_get($url, [
+        'timeout' => 15,
+    ]);
+    if (is_wp_error($response)) {
+        error_log('Bridge countries error: ' . $response->get_error_message());
+        return [];
+    }
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        error_log('Bridge countries: ongeldige JSON: ' . $body);
+        return [];
+    }
+    return $data['results'] ?? $data;
+}
+
+/**
+ * Haal regio's op via de bridge op freestays.eu
+ */
+function freestays_bridge_get_regions($country_id) {
+    $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+    $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+    if (empty($bridge_url) || empty($bridge_key) || empty($country_id)) {
+        error_log('Bridge config ontbreekt of country_id ontbreekt!');
+        return [];
+    }
+
+    $url = $bridge_url . '?key=' . urlencode($bridge_key) . '&action=regions&country_id=' . urlencode($country_id);
+
+    $response = wp_remote_get($url, [
+        'timeout' => 15,
+    ]);
+    if (is_wp_error($response)) {
+        error_log('Bridge regions error: ' . $response->get_error_message());
+        return [];
+    }
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        error_log('Bridge regions: ongeldige JSON: ' . $body);
+        return [];
+    }
+    return $data['results'] ?? $data;
+}
+
+/**
+ * Haal steden op via de bridge op freestays.eu
+ */
+function freestays_bridge_get_cities($region_id) {
+    $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+    $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+    if (empty($bridge_url) || empty($bridge_key) || empty($region_id)) {
+        error_log('Bridge config ontbreekt of region_id ontbreekt!');
+        return [];
+    }
+
+    $url = $bridge_url . '?key=' . urlencode($bridge_key) . '&action=cities&region_id=' . urlencode($region_id);
+
+    $response = wp_remote_get($url, [
+        'timeout' => 15,
+    ]);
+    if (is_wp_error($response)) {
+        error_log('Bridge cities error: ' . $response->get_error_message());
+        return [];
+    }
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        error_log('Bridge cities: ongeldige JSON: ' . $body);
+        return [];
+    }
+    return $data['results'] ?? $data;
+}
+
+// Shortcode voor regio's (voorbeeld: [freestays_bridge_regions country_id="1"])
+add_shortcode('freestays_bridge_regions', function($atts) {
+    $atts = shortcode_atts(['country_id' => ''], $atts);
+    if (empty($atts['country_id'])) return '<p>Geen country_id opgegeven.</p>';
+    $regions = freestays_bridge_get_regions($atts['country_id']);
+    if (!$regions) return '<p>Geen regio\'s gevonden.</p>';
+    $out = '<ul>';
+    foreach ($regions as $region) {
+        $out .= '<li>' . esc_html($region['name'] ?? $region['id']) . '</li>';
+    }
+    $out .= '</ul>';
+    return $out;
+});
+
+// Shortcode voor steden (voorbeeld: [freestays_bridge_cities region_id="1"])
+add_shortcode('freestays_bridge_cities', function($atts) {
+    $atts = shortcode_atts(['region_id' => ''], $atts);
+    if (empty($atts['region_id'])) return '<p>Geen region_id opgegeven.</p>';
+    $cities = freestays_bridge_get_cities($atts['region_id']);
+    if (!$cities) return '<p>Geen steden gevonden.</p>';
+    $out = '<ul>';
+    foreach ($cities as $city) {
+        $out .= '<li>' . esc_html($city['name'] ?? $city['id']) . '</li>';
+    }
+    $out .= '</ul>';
+    return $out;
+});
+
+/**
+ * Haal hotels op via de bridge op freestays.eu op basis van een zoekterm
+ */
+function freestays_bridge_search_hotels($search_term) {
+    $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
+    $bridge_key = $_ENV['BRIDGE_KEY'] ?? getenv('BRIDGE_KEY') ?? '';
+    if (empty($bridge_url) || empty($bridge_key) || empty($search_term)) {
+        error_log('Bridge config ontbreekt of zoekterm ontbreekt!');
+        return [];
+    }
+
+    $url = $bridge_url . '?key=' . urlencode($bridge_key) . '&action=hotels&q=' . urlencode($search_term);
+
+    $response = wp_remote_get($url, [
+        'timeout' => 15,
+    ]);
+    if (is_wp_error($response)) {
+        error_log('Bridge hotels error: ' . $response->get_error_message());
+        return [];
+    }
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+    if (!is_array($data)) {
+        error_log('Bridge hotels: ongeldige JSON: ' . $body);
+        return [];
+    }
+    return $data;
+}
+
+// Shortcode voor vrije zoekopdracht hotels (voorbeeld: [freestays_bridge_hotels q="hotelnaam"])
+add_shortcode('freestays_bridge_hotels', function($atts) {
+    $atts = shortcode_atts(['q' => ''], $atts);
+    if (empty($atts['q'])) return '<p>Geen zoekterm opgegeven.</p>';
+    $hotels = freestays_bridge_search_hotels($atts['q']);
+    if (!$hotels) return '<p>Geen hotels gevonden.</p>';
+    $out = '<ul>';
+    foreach ($hotels as $hotel) {
+        $out .= '<li>' . esc_html($hotel['title'] ?? $hotel['name'] ?? $hotel['id']) . '</li>';
+    }
+    $out .= '</ul>';
+    return $out;
+});
