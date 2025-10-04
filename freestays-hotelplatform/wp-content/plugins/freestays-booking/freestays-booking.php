@@ -207,19 +207,23 @@ function freestays_get_resorts($city_id) {
 
 // Shortcode handler (voorbeeld, alleen relevante searchHotels-aanroep)
 function freestays_search_shortcode($atts) {
+    // Ophalen van landen, regio's en steden op basis van selectie
     $countries = freestays_bridge_get_countries();
     $country_id = isset($_POST['freestays_country']) ? sanitize_text_field($_POST['freestays_country']) : '';
     $regions = $country_id ? freestays_bridge_get_regions($country_id) : [];
-    $region_id = isset($_POST['freestays_city']) ? sanitize_text_field($_POST['freestays_city']) : '';
+    $region_id = isset($_POST['freestays_region']) ? sanitize_text_field($_POST['freestays_region']) : '';
     $cities = $region_id ? freestays_bridge_get_cities($region_id) : [];
+    $city_id = isset($_POST['freestays_city']) ? sanitize_text_field($_POST['freestays_city']) : '';
     $search_query = isset($_POST['freestays_search']) ? sanitize_text_field($_POST['freestays_search']) : '';
 
     $output = '<form method="post" class="freestays-search-form">';
     $output .= '<label for="freestays_search">Zoek op hotel, regio of land:</label>';
     $output .= '<input type="text" name="freestays_search" id="freestays_search" value="' . esc_attr($search_query) . '" placeholder="Bijv. Alanya, Turkije, Hotelnaam">';
     $output .= '<div style="margin-top: 18px;">';
+
+    // Country dropdown
     $output .= '<label for="freestays_country">Land:</label>';
-    $output .= '<select name="freestays_country" id="freestays_country">';
+    $output .= '<select name="freestays_country" id="freestays_country" onchange="this.form.submit()">';
     $output .= '<option value="">Kies land</option>';
     foreach ($countries as $country) {
         $selected = ($country_id === $country['id']) ? ' selected' : '';
@@ -227,25 +231,38 @@ function freestays_search_shortcode($atts) {
     }
     $output .= '</select>';
 
-    $output .= '<label for="freestays_city" style="margin-left:10px;">Regio:</label>';
-    $output .= '<select name="freestays_city" id="freestays_city">';
+    // Region dropdown (afhankelijk van country)
+    $output .= '<label for="freestays_region" style="margin-left:10px;">Regio:</label>';
+    $output .= '<select name="freestays_region" id="freestays_region" onchange="this.form.submit()">';
     $output .= '<option value="">Kies regio</option>';
     foreach ($regions as $region) {
         $selected = ($region_id === $region['id']) ? ' selected' : '';
         $output .= '<option value="' . esc_attr($region['id']) . '"' . $selected . '>' . esc_html($region['name']) . '</option>';
     }
     $output .= '</select>';
+
+    // City dropdown (afhankelijk van regio)
+    $output .= '<label for="freestays_city" style="margin-left:10px;">Stad:</label>';
+    $output .= '<select name="freestays_city" id="freestays_city">';
+    $output .= '<option value="">Kies stad</option>';
+    foreach ($cities as $city) {
+        $selected = ($city_id === $city['id']) ? ' selected' : '';
+        $output .= '<option value="' . esc_attr($city['id']) . '"' . $selected . '>' . esc_html($city['name']) . '</option>';
+    }
+    $output .= '</select>';
+
     $output .= '</div>';
     $output .= '<button type="submit" style="margin-top:18px;">Zoeken</button>';
     $output .= '</form>';
 
     // Resultaten tonen na POST
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($search_query) || !empty($country_id) || !empty($region_id))) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($search_query) || !empty($country_id) || !empty($region_id) || !empty($city_id))) {
         // Bouw de zoekterm op
         $params = [];
         if (!empty($search_query)) $params['q'] = $search_query;
         if (!empty($country_id)) $params['country_id'] = $country_id;
         if (!empty($region_id)) $params['region_id'] = $region_id;
+        if (!empty($city_id)) $params['city_id'] = $city_id;
 
         // Bouw de bridge-url
         $bridge_url = $_ENV['BRIDGE_URL'] ?? getenv('BRIDGE_URL') ?? '';
