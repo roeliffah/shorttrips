@@ -6,17 +6,23 @@ class Searchbar_Shortcode {
     public static function render($atts = [], $content = null) {
         ob_start();
         ?>
-        <form id="freestays-search-form">
+        <form id="freestays-search-form" style="margin-bottom:24px;">
+            <label for="country-select">Land:</label>
             <select id="country-select" name="country_id"></select>
+
+            <label for="city-select" style="margin-left:10px;">Stad:</label>
             <select id="city-select" name="city_id"></select>
+
+            <label for="resort-select" style="margin-left:10px;">Resort:</label>
             <select id="resort-select" name="resort_id"></select>
-            <input type="text" id="search-input" name="q" placeholder="Zoekterm (optioneel)">
-            <input type="date" id="checkin-input" name="start">
+
+            <input type="text" id="search-input" name="q" placeholder="Zoekterm (optioneel)" style="margin-left:10px;">
+            <input type="date" id="checkin-input" name="start" style="margin-left:10px;">
             <input type="date" id="checkout-input" name="end">
-            <input type="number" id="adults-input" name="adults" value="2" min="1">
-            <input type="number" id="children-input" name="children" value="0" min="0">
-            <input type="number" id="rooms-input" name="room" value="1" min="1">
-            <button type="submit">Zoeken</button>
+            <input type="number" id="adults-input" name="adults" value="2" min="1" style="width:60px;margin-left:10px;">
+            <input type="number" id="children-input" name="children" value="0" min="0" style="width:60px;">
+            <input type="number" id="rooms-input" name="room" value="1" min="1" style="width:60px;">
+            <button type="submit" style="margin-left:10px;">Zoeken</button>
         </form>
         <div id="freestays-search-results"></div>
         <script>
@@ -55,15 +61,12 @@ class Searchbar_Shortcode {
             document.getElementById('freestays-search-form').onsubmit = async function(e) {
                 e.preventDefault();
                 const data = {
-                    country_id: document.getElementById('country-select').value,
-                    city_id: document.getElementById('city-select').value,
-                    resort_id: document.getElementById('resort-select').value,
-                    q: document.getElementById('search-input') ? document.getElementById('search-input').value : '',
-                    start: document.getElementById('checkin-input') ? document.getElementById('checkin-input').value : '',
-                    end: document.getElementById('checkout-input') ? document.getElementById('checkout-input').value : '',
-                    adults: document.getElementById('adults-input') ? document.getElementById('adults-input').value : 2,
-                    children: document.getElementById('children-input') ? document.getElementById('children-input').value : 0,
-                    room: document.getElementById('rooms-input') ? document.getElementById('rooms-input').value : 1
+                    destination_id: document.getElementById('city-select').value || document.getElementById('country-select').value || document.getElementById('resort-select').value,
+                    start: document.getElementById('checkin-input').value,
+                    end: document.getElementById('checkout-input').value,
+                    adults: document.getElementById('adults-input').value,
+                    children: document.getElementById('children-input').value,
+                    room: document.getElementById('rooms-input').value
                 };
                 const res = await fetch('/wp-json/freestays/v1/search', {
                     method: 'POST',
@@ -74,7 +77,7 @@ class Searchbar_Shortcode {
                 const resultsDiv = document.getElementById('freestays-search-results');
                 if (json.data && json.data.length) {
                     resultsDiv.innerHTML = json.data.map(hotel =>
-                        `<div class="hotel-result">
+                        `<div class="hotel-result" style="border:1px solid #ccc;padding:12px;margin-bottom:8px;">
                             <strong>${hotel.name}</strong><br>
                             ${hotel.city ? hotel.city + '<br>' : ''}
                             ${hotel.country ? hotel.country + '<br>' : ''}

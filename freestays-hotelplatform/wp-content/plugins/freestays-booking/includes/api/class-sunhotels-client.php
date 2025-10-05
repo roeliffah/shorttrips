@@ -234,16 +234,12 @@ XML;
         $adults = (int)($params['adults'] ?? 2);
         $children = (int)($params['children'] ?? 0);
 
-        // Prioriteit: vrije zoekterm (q), anders dropdowns
+        // destinationID ophalen uit params (altijd meesturen!)
         $destinationID = '';
-        if (!empty($params['q'])) {
+        if (!empty($params['destination_id'])) {
+            $destinationID = htmlspecialchars($params['destination_id']);
+        } elseif (!empty($params['q'])) {
             $destinationID = htmlspecialchars($params['q']);
-        } elseif (!empty($params['city_id'])) {
-            $destinationID = htmlspecialchars($params['city_id']);
-        } elseif (!empty($params['resort_id'])) {
-            $destinationID = htmlspecialchars($params['resort_id']);
-        } elseif (!empty($params['country'])) {
-            $destinationID = htmlspecialchars($params['country']);
         }
 
         $blockSuperdeal = 'ja';
