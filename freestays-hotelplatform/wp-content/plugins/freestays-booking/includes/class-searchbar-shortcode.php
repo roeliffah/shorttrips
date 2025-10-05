@@ -95,6 +95,6 @@ class Searchbar_Shortcode {
         return ob_get_clean();
     }
 }
-add_shortcode('freestays_search', 'freestays_search_shortcode');
+add_shortcode('freestays_search', 'freestays_react_search_shortcode');
 add_shortcode('freestays_filters', 'freestays_filters_shortcode'); // Moet je functie bestaan!
 add_shortcode('freestays_searchbar', [Searchbar_Shortcode::class, 'render']); // Voor class-based shortcode

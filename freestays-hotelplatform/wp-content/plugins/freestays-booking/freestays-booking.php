@@ -628,3 +628,19 @@ add_action('rest_api_init', function() {
         }
     ]);
 });
+
+add_action('wp_enqueue_scripts', function() {
+    if (is_singular() && has_shortcode(get_post()->post_content, 'freestays_search')) {
+        wp_enqueue_script(
+            'freestays-react-search',
+            plugins_url('../../../../frontend/build/static/js/main.js', __FILE__),
+            [],
+            null,
+            true
+        );
+        wp_enqueue_style(
+            'freestays-react-search',
+            plugins_url('../../../../frontend/build/static/css/main.css', __FILE__)
+        );
+    }
+});
