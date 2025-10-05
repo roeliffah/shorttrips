@@ -14,10 +14,6 @@ class Sunhotels_Client {
     }
 
     public function getCountries() {
-        if (empty($this->apiUrl)) {
-            throw new Exception('API URL is niet ingesteld!');
-        }
-
         $xml = $this->buildGetCountriesXml();
         $opts = [
             'http' => [
@@ -45,6 +41,7 @@ class Sunhotels_Client {
                 $countries[] = [
                     'id' => (string)($country->CountryId ?? ''),
                     'name' => (string)($country->Name ?? ''),
+                    'destinationID' => (string)($country->DestinationId ?? '')
                 ];
             }
         }
@@ -52,10 +49,6 @@ class Sunhotels_Client {
     }
 
     public function getCities($country_id) {
-        if (empty($this->apiUrl)) {
-            throw new Exception('API URL is niet ingesteld!');
-        }
-
         $xml = $this->buildGetCitiesXml($country_id);
         $opts = [
             'http' => [
@@ -77,12 +70,13 @@ class Sunhotels_Client {
         if (!$body) return [];
 
         $cities = [];
-        if (isset($xmlObj->Cities->City)) {
-            foreach ($xmlObj->Cities->City as $city) {
+        $resultNodes = $body->xpath('.//City');
+        if ($resultNodes) {
+            foreach ($resultNodes as $city) {
                 $cities[] = [
-                    'id' => (string)$city->CityId,
-                    'name' => (string)$city->CityName,
-                    'destinationID' => (string)$city->DestinationId // <-- deze moet je toevoegen!
+                    'id' => (string)($city->CityId ?? ''),
+                    'name' => (string)($city->CityName ?? ''),
+                    'destinationID' => (string)($city->DestinationId ?? '')
                 ];
             }
         }
@@ -90,10 +84,6 @@ class Sunhotels_Client {
     }
 
     public function getResorts($city_id) {
-        if (empty($this->apiUrl)) {
-            throw new Exception('API URL is niet ingesteld!');
-        }
-
         $xml = $this->buildGetResortsXml($city_id);
         $opts = [
             'http' => [
@@ -121,6 +111,7 @@ class Sunhotels_Client {
                 $resorts[] = [
                     'id' => (string)($resort->ResortId ?? ''),
                     'name' => (string)($resort->Name ?? ''),
+                    'destinationID' => (string)($resort->DestinationId ?? '')
                 ];
             }
         }
@@ -262,8 +253,8 @@ XML;
       <numberOfChildren>{$children}</numberOfChildren>
       <blockSuperdeal>{$blockSuperdeal}</blockSuperdeal>
     </SearchV3>
-  </soap:Body>
-</soap:Envelope>
-XML;
+XML;soap:Body>
+    }p:Envelope>
+}ML;
     }
 }

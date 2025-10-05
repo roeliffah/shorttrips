@@ -6,7 +6,7 @@ class Searchbar_Shortcode {
     public static function render($atts = [], $content = null) {
         ob_start();
         ?>
-        <form id="freestays-search-form" style="margin-bottom:24px;">
+        <form id="freestays-search-form" autocomplete="off">
             <label for="country-select">Land:</label>
             <select id="country-select" name="country_id"></select>
 
@@ -61,7 +61,9 @@ class Searchbar_Shortcode {
             document.getElementById('freestays-search-form').onsubmit = async function(e) {
                 e.preventDefault();
                 const data = {
-                    destination_id: document.getElementById('city-select').value || document.getElementById('country-select').value || document.getElementById('resort-select').value,
+                    destination_id: document.getElementById('resort-select').value
+                        || document.getElementById('city-select').value
+                        || document.getElementById('country-select').value,
                     start: document.getElementById('checkin-input').value,
                     end: document.getElementById('checkout-input').value,
                     adults: document.getElementById('adults-input').value,
