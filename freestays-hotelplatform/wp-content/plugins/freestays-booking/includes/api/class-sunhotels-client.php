@@ -253,8 +253,8 @@ XML;
       <numberOfChildren>{$children}</numberOfChildren>
       <blockSuperdeal>{$blockSuperdeal}</blockSuperdeal>
     </SearchV3>
-XML;soap:Body>
-    }p:Envelope>
-}ML;
+  </soap:Body>
+</soap:Envelope>
+XML;
     }
 }
