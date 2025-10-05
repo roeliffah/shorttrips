@@ -598,8 +598,7 @@ add_action('rest_api_init', function() {
         'callback' => function() {
             require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
             $client = new Sunhotels_Client();
-            $countries = $client->getCountries();
-            return rest_ensure_response(['data' => $countries]);
+            return rest_ensure_response(['data' => $client->getCountries()]);
         }
     ]);
     register_rest_route('freestays/v1', '/cities', [
@@ -607,9 +606,7 @@ add_action('rest_api_init', function() {
         'callback' => function($request) {
             require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
             $client = new Sunhotels_Client();
-            $country_id = $request->get_param('country_id');
-            $cities = $client->getCities($country_id);
-            return rest_ensure_response(['data' => $cities]);
+            return rest_ensure_response(['data' => $client->getCities($request->get_param('country_id'))]);
         }
     ]);
     register_rest_route('freestays/v1', '/resorts', [
@@ -617,9 +614,7 @@ add_action('rest_api_init', function() {
         'callback' => function($request) {
             require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
             $client = new Sunhotels_Client();
-            $city_id = $request->get_param('city_id');
-            $resorts = $client->getResorts($city_id);
-            return rest_ensure_response(['data' => $resorts]);
+            return rest_ensure_response(['data' => $client->getResorts($request->get_param('city_id'))]);
         }
     ]);
     register_rest_route('freestays/v1', '/search', [
@@ -629,7 +624,7 @@ add_action('rest_api_init', function() {
             $client = new Sunhotels_Client();
             $params = $request->get_json_params();
             $results = $client->searchV3($params);
-            return rest_ensure_response(['success' => true, 'data' => $results['hotels'] ?? []]);
+            return rest_ensure_response(['data' => $results['hotels'] ?? []]);
         }
     ]);
 });

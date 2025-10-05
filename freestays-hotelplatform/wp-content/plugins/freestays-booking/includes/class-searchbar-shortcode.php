@@ -7,7 +7,7 @@ class Searchbar_Shortcode {
         ob_start();
         ?>
         <form id="freestays-search-form" method="get" action="">
-            <input type="text" name="q" placeholder="Bestemming, hotel of plaats" />
+            <input type="text" name="q" id="search-input" placeholder="Bestemming, hotel of plaats" />
             <select name="country" id="country-select">
                 <option value="">Kies land</option>
             </select>
@@ -17,11 +17,11 @@ class Searchbar_Shortcode {
             <select name="resort_id" id="resort-select">
                 <option value="">Kies resort</option>
             </select>
-            <input type="date" name="start" required />
-            <input type="date" name="end" required />
-            <input type="number" name="room" min="1" value="1" />
-            <input type="number" name="adults" min="1" value="2" />
-            <input type="number" name="children" min="0" value="0" />
+            <input type="date" name="start" id="checkin-input" required />
+            <input type="date" name="end" id="checkout-input" required />
+            <input type="number" name="room" id="rooms-input" min="1" value="1" />
+            <input type="number" name="adults" id="adults-input" min="1" value="2" />
+            <input type="number" name="children" id="children-input" min="0" value="0" />
             <button type="submit">Zoeken</button>
         </form>
         <div id="freestays-search-results"></div>
@@ -58,22 +58,39 @@ class Searchbar_Shortcode {
                 loadResorts(this.value);
                 document.getElementById('resort-select').innerHTML = '<option value="">Kies resort</option>';
             };
+            document.getElementById('freestays-search-form').onsubmit = async function(e) {
+                e.preventDefault();
+                const data = {
+                    country_id: document.getElementById('country-select').value,
+                    city_id: document.getElementById('city-select').value,
+                    resort_id: document.getElementById('resort-select').value,
+                    q: document.getElementById('search-input') ? document.getElementById('search-input').value : '',
+                    start: document.getElementById('checkin-input') ? document.getElementById('checkin-input').value : '',
+                    end: document.getElementById('checkout-input') ? document.getElementById('checkout-input').value : '',
+                    adults: document.getElementById('adults-input') ? document.getElementById('adults-input').value : 2,
+                    children: document.getElementById('children-input') ? document.getElementById('children-input').value : 0,
+                    room: document.getElementById('rooms-input') ? document.getElementById('rooms-input').value : 1
+                };
+                const res = await fetch('/wp-json/freestays/v1/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+                const resultsDiv = document.getElementById('freestays-search-results');
+                if (json.data && json.data.length) {
+                    resultsDiv.innerHTML = json.data.map(hotel =>
+                        `<div class="hotel-result">
+                            <strong>${hotel.name}</strong><br>
+                            ${hotel.city ? hotel.city + '<br>' : ''}
+                            ${hotel.country ? hotel.country + '<br>' : ''}
+                        </div>`
+                    ).join('');
+                } else {
+                    resultsDiv.innerHTML = '<div>Geen hotels gevonden.</div>';
+                }
+            };
         });
-        document.getElementById('freestays-search-form').onsubmit = async function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const data = Object.fromEntries(new FormData(form).entries());
-            const res = await fetch('/wp-json/freestays/v1/search', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
-            const json = await res.json();
-            document.getElementById('freestays-search-results').innerHTML =
-                json.success && Array.isArray(json.data) && json.data.length > 0
-                    ? json.data.map(hotel => `<div>${JSON.stringify(hotel)}</div>`).join('')
-                    : 'Geen resultaten gevonden.';
-        };
         </script>
         <?php
         return ob_get_clean();
