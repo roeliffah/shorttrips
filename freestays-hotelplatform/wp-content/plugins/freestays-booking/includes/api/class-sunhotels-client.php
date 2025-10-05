@@ -13,6 +13,120 @@ class Sunhotels_Client {
         $this->apiUrl  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
     }
 
+    public function getCountries() {
+        if (empty($this->apiUrl)) {
+            throw new Exception('API URL is niet ingesteld!');
+        }
+
+        $xml = $this->buildGetCountriesXml();
+        $opts = [
+            'http' => [
+                'method' => "POST",
+                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/GetCountries\"\r\n",
+                'content' => $xml,
+                'timeout' => 30
+            ]
+        ];
+        $context = stream_context_create($opts);
+        $response = @file_get_contents($this->apiUrl, false, $context);
+        if ($response === false) return [];
+
+        $xmlObj = simplexml_load_string($response);
+        if (!$xmlObj) return [];
+
+        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
+        if (!$body) return [];
+
+        $countries = [];
+        $resultNodes = $body->xpath('.//Country');
+        if ($resultNodes) {
+            foreach ($resultNodes as $country) {
+                $countries[] = [
+                    'id' => (string)($country->CountryId ?? ''),
+                    'name' => (string)($country->Name ?? ''),
+                ];
+            }
+        }
+        return $countries;
+    }
+
+    public function getCities($country_id) {
+        if (empty($this->apiUrl)) {
+            throw new Exception('API URL is niet ingesteld!');
+        }
+
+        $xml = $this->buildGetCitiesXml($country_id);
+        $opts = [
+            'http' => [
+                'method' => "POST",
+                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/GetCities\"\r\n",
+                'content' => $xml,
+                'timeout' => 30
+            ]
+        ];
+        $context = stream_context_create($opts);
+        $response = @file_get_contents($this->apiUrl, false, $context);
+        if ($response === false) return [];
+
+        $xmlObj = simplexml_load_string($response);
+        if (!$xmlObj) return [];
+
+        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
+        if (!$body) return [];
+
+        $cities = [];
+        $resultNodes = $body->xpath('.//City');
+        if ($resultNodes) {
+            foreach ($resultNodes as $city) {
+                $cities[] = [
+                    'id' => (string)($city->CityId ?? ''),
+                    'name' => (string)($city->Name ?? ''),
+                ];
+            }
+        }
+        return $cities;
+    }
+
+    public function getResorts($city_id) {
+        if (empty($this->apiUrl)) {
+            throw new Exception('API URL is niet ingesteld!');
+        }
+
+        $xml = $this->buildGetResortsXml($city_id);
+        $opts = [
+            'http' => [
+                'method' => "POST",
+                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/GetResorts\"\r\n",
+                'content' => $xml,
+                'timeout' => 30
+            ]
+        ];
+        $context = stream_context_create($opts);
+        $response = @file_get_contents($this->apiUrl, false, $context);
+        if ($response === false) return [];
+
+        $xmlObj = simplexml_load_string($response);
+        if (!$xmlObj) return [];
+
+        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
+        if (!$body) return [];
+
+        $resorts = [];
+        $resultNodes = $body->xpath('.//Resort');
+        if ($resultNodes) {
+            foreach ($resultNodes as $resort) {
+                $resorts[] = [
+                    'id' => (string)($resort->ResortId ?? ''),
+                    'name' => (string)($resort->Name ?? ''),
+                ];
+            }
+        }
+        return $resorts;
+    }
+
     public function searchV3($params) {
         if (empty($this->apiUrl)) {
             throw new Exception('API URL is niet ingesteld!');
@@ -54,6 +168,63 @@ class Sunhotels_Client {
             }
         }
         return ['hotels' => $hotels];
+    }
+
+    private function buildGetCountriesXml() {
+        return <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetCountries xmlns="http://xml.sunhotels.net/15/">
+      <userName>{$this->apiUser}</userName>
+      <password>{$this->apiPass}</password>
+      <language>EN</language>
+    </GetCountries>
+  </soap:Body>
+</soap:Envelope>
+XML;
+    }
+
+    private function buildGetCitiesXml($country_id) {
+        $countryID = htmlspecialchars($country_id);
+
+        return <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetCities xmlns="http://xml.sunhotels.net/15/">
+      <userName>{$this->apiUser}</userName>
+      <password>{$this->apiPass}</password>
+      <language>EN</language>
+      <countryID>{$countryID}</countryID>
+    </GetCities>
+  </soap:Body>
+</soap:Envelope>
+XML;
+    }
+
+    private function buildGetResortsXml($city_id) {
+        $cityID = htmlspecialchars($city_id);
+
+        return <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetResorts xmlns="http://xml.sunhotels.net/15/">
+      <userName>{$this->apiUser}</userName>
+      <password>{$this->apiPass}</password>
+      <language>EN</language>
+      <cityID>{$cityID}</cityID>
+    </GetResorts>
+  </soap:Body>
+</soap:Envelope>
+XML;
     }
 
     private function buildSearchV3Xml($params) {

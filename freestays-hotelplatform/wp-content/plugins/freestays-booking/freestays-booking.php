@@ -314,6 +314,7 @@ function freestays_search_shortcode($atts) {
 }
 add_shortcode('freestays_search', 'freestays_search_shortcode');
 add_shortcode('freestays_search_classic', 'freestays_search_shortcode');
+add_shortcode('freestays_search_form', 'freestays_search_form_shortcode');
 
 /**
  * AJAX handlers
@@ -589,4 +590,46 @@ add_shortcode('freestays_bridge_hotels', function($atts) {
     }
     $out .= '</ul>';
     return $out;
+});
+
+add_action('rest_api_init', function() {
+    register_rest_route('freestays/v1', '/countries', [
+        'methods' => 'GET',
+        'callback' => function() {
+            require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client();
+            $countries = $client->getCountries();
+            return rest_ensure_response(['data' => $countries]);
+        }
+    ]);
+    register_rest_route('freestays/v1', '/cities', [
+        'methods' => 'GET',
+        'callback' => function($request) {
+            require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client();
+            $country_id = $request->get_param('country_id');
+            $cities = $client->getCities($country_id);
+            return rest_ensure_response(['data' => $cities]);
+        }
+    ]);
+    register_rest_route('freestays/v1', '/resorts', [
+        'methods' => 'GET',
+        'callback' => function($request) {
+            require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client();
+            $city_id = $request->get_param('city_id');
+            $resorts = $client->getResorts($city_id);
+            return rest_ensure_response(['data' => $resorts]);
+        }
+    ]);
+    register_rest_route('freestays/v1', '/search', [
+        'methods' => 'POST',
+        'callback' => function($request) {
+            require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
+            $client = new Sunhotels_Client();
+            $params = $request->get_json_params();
+            $results = $client->searchV3($params);
+            return rest_ensure_response(['success' => true, 'data' => $results['hotels'] ?? []]);
+        }
+    ]);
 });
