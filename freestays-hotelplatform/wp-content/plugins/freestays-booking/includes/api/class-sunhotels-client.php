@@ -77,12 +77,12 @@ class Sunhotels_Client {
         if (!$body) return [];
 
         $cities = [];
-        $resultNodes = $body->xpath('.//City');
-        if ($resultNodes) {
-            foreach ($resultNodes as $city) {
+        if (isset($xmlObj->Cities->City)) {
+            foreach ($xmlObj->Cities->City as $city) {
                 $cities[] = [
-                    'id' => (string)($city->CityId ?? ''),
-                    'name' => (string)($city->Name ?? ''),
+                    'id' => (string)$city->CityId,
+                    'name' => (string)$city->CityName,
+                    'destinationID' => (string)$city->DestinationId // <-- deze moet je toevoegen!
                 ];
             }
         }

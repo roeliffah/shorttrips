@@ -31,21 +31,21 @@ class Searchbar_Shortcode {
             const json = await res.json();
             const select = document.getElementById('country-select');
             select.innerHTML = '<option value="">Kies land</option>' +
-                (json.data || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
         }
         async function loadCities(countryId) {
             const res = await fetch('/wp-json/freestays/v1/cities?country_id=' + encodeURIComponent(countryId));
             const json = await res.json();
             const select = document.getElementById('city-select');
             select.innerHTML = '<option value="">Kies stad</option>' +
-                (json.data || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
         }
         async function loadResorts(cityId) {
             const res = await fetch('/wp-json/freestays/v1/resorts?city_id=' + encodeURIComponent(cityId));
             const json = await res.json();
             const select = document.getElementById('resort-select');
             select.innerHTML = '<option value="">Kies resort</option>' +
-                (json.data || []).map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+                (json.data || []).map(r => `<option value="${r.destinationID}">${r.name}</option>`).join('');
         }
         document.addEventListener('DOMContentLoaded', function() {
             loadCountries();
