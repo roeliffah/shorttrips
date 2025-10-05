@@ -6,22 +6,16 @@ class Searchbar_Shortcode {
     public static function render($atts = [], $content = null) {
         ob_start();
         ?>
-        <form id="freestays-search-form" method="get" action="">
-            <input type="text" name="q" id="search-input" placeholder="Bestemming, hotel of plaats" />
-            <select name="country" id="country-select">
-                <option value="">Kies land</option>
-            </select>
-            <select name="city_id" id="city-select">
-                <option value="">Kies stad</option>
-            </select>
-            <select name="resort_id" id="resort-select">
-                <option value="">Kies resort</option>
-            </select>
-            <input type="date" name="start" id="checkin-input" required />
-            <input type="date" name="end" id="checkout-input" required />
-            <input type="number" name="room" id="rooms-input" min="1" value="1" />
-            <input type="number" name="adults" id="adults-input" min="1" value="2" />
-            <input type="number" name="children" id="children-input" min="0" value="0" />
+        <form id="freestays-search-form">
+            <select id="country-select" name="country_id"></select>
+            <select id="city-select" name="city_id"></select>
+            <select id="resort-select" name="resort_id"></select>
+            <input type="text" id="search-input" name="q" placeholder="Zoekterm (optioneel)">
+            <input type="date" id="checkin-input" name="start">
+            <input type="date" id="checkout-input" name="end">
+            <input type="number" id="adults-input" name="adults" value="2" min="1">
+            <input type="number" id="children-input" name="children" value="0" min="0">
+            <input type="number" id="rooms-input" name="room" value="1" min="1">
             <button type="submit">Zoeken</button>
         </form>
         <div id="freestays-search-results"></div>
