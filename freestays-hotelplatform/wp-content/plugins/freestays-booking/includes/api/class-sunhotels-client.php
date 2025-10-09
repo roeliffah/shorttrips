@@ -187,3 +187,42 @@ XML;
 XML;
     }
 }
+
+// Landen laden
+async function loadCountries() {
+    const res = await fetch('/wp-json/freestays/v1/countries');
+    const json = await res.json();
+    const select = document.getElementById('country-select');
+    select.innerHTML = '<option value="">Kies land</option>' +
+        (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+}
+
+// Steden laden
+async function loadCities(countryId) {
+    const res = await fetch('/wp-json/freestays/v1/cities?country_id=' + encodeURIComponent(countryId));
+    const json = await res.json();
+    const select = document.getElementById('city-select');
+    select.innerHTML = '<option value="">Kies stad</option>' +
+        (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+}
+
+// Resorts laden
+async function loadResorts(cityId) {
+    const res = await fetch('/wp-json/freestays/v1/resorts?city_id=' + encodeURIComponent(cityId));
+    const json = await res.json();
+    const select = document.getElementById('resort-select');
+    select.innerHTML = '<option value="">Kies resort</option>' +
+        (json.data || []).map(r => `<option value="${r.destinationID}">${r.name}</option>`).join('');
+}
+
+// Data verzamelen voor zoekopdracht
+const data = {
+    destination_id: document.getElementById('resort-select').value
+        || document.getElementById('city-select').value
+        || document.getElementById('country-select').value,
+    start: document.getElementById('checkin-input').value,
+    end: document.getElementById('checkout-input').value,
+    adults: document.getElementById('adults-input').value,
+    children: document.getElementById('children-input').value,
+    room: document.getElementById('rooms-input').value
+};
