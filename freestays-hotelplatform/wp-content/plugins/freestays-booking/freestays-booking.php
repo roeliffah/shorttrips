@@ -319,6 +319,15 @@ add_shortcode('freestays_search_form', 'freestays_search_form_shortcode');
 /**
  * AJAX handlers
  */
+if (!function_exists('freestays_ajax_get_countries')) {
+    add_action('wp_ajax_freestays_get_countries', 'freestays_ajax_get_countries');
+    add_action('wp_ajax_nopriv_freestays_get_countries', 'freestays_ajax_get_countries');
+    function freestays_ajax_get_countries() {
+        $countries = freestays_get_countries();
+        wp_send_json($countries);
+    }
+}
+
 if (!function_exists('freestays_ajax_get_cities')) {
     add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
     add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');

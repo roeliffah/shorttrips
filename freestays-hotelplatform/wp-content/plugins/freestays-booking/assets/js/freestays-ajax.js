@@ -1,4 +1,23 @@
 jQuery(document).ready(function($) {
+    // Landen laden bij pagina-init
+    if ($('#freestays_country').length) {
+        $('#freestays_country').html('<option>Even laden...</option>');
+        $.post(freestaysAjax.ajax_url, {
+            action: 'freestays_get_countries'
+        }, function(response) {
+            var options = '<option value="">Kies land</option>';
+            if (Array.isArray(response) && response.length > 0) {
+                $.each(response, function(i, country) {
+                    options += '<option value="' + country.id + '">' + country.name + '</option>';
+                });
+            } else {
+                options += '<option value="">Geen landen gevonden</option>';
+            }
+            $('#freestays_country').html(options);
+        }).fail(function() {
+            $('#freestays_country').html('<option value="">Fout bij laden landen</option>');
+        });
+    }
     console.log('freestays-ajax.js geladen');
     $('#freestays_country').on('change', function() {
         var countryId = $(this).val();
