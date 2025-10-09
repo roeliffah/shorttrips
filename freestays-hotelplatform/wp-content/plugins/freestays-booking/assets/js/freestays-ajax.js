@@ -1,14 +1,18 @@
-// filepath: /workspaces/shorttrips/freestays-hotelplatform/wp-content/plugins/freestays-booking/assets/js/freestays-ajax.js
 jQuery(document).ready(function($) {
     console.log('freestays-ajax.js geladen');
-
     $('#freestays_country').on('change', function() {
         var countryId = $(this).val();
+        if (!countryId) {
+            $('#freestays_city').html('<option value="">Kies eerst een land</option>');
+            $('#freestays_resort').html('<option>Kies resort (optioneel)</option>');
+            return;
+        }
         $('#freestays_city').html('<option>Even laden...</option>');
         $('#freestays_resort').html('<option>Kies resort (optioneel)</option>');
         $.post(freestaysAjax.ajax_url, {
             action: 'freestays_get_cities',
             country_id: countryId
+        }, function(response) {
         }, function(response) {
             var options = '<option value="">Kies stad</option>';
             if (Array.isArray(response) && response.length > 0) {
@@ -23,13 +27,17 @@ jQuery(document).ready(function($) {
             $('#freestays_city').html('<option value="">Fout bij laden steden</option>');
         });
     });
-
     $('#freestays_city').on('change', function() {
         var cityId = $(this).val();
+        if (!cityId) {
+            $('#freestays_resort').html('<option value="">Kies eerst een stad</option>');
+            return;
+        }
         $('#freestays_resort').html('<option>Even laden...</option>');
         $.post(freestaysAjax.ajax_url, {
             action: 'freestays_get_resorts',
             city_id: cityId
+        }, function(response) {
         }, function(response) {
             var options = '<option value="">Kies resort (optioneel)</option>';
             if (Array.isArray(response) && response.length > 0) {
@@ -45,7 +53,6 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Optioneel: hotels laden via AJAX (indien je een knop hebt)
     $('#load_hotels').on('click', function() {
         var resortId = $('#freestays_resort').val();
         if (!resortId) {
@@ -55,6 +62,7 @@ jQuery(document).ready(function($) {
         $.post(freestaysAjax.ajax_url, {
             action: 'freestays_get_hotels',
             resort_id: resortId
+        }, function(data) {
         }, function(data) {
             if (data.success) {
                 var resultsDiv = $('#results');

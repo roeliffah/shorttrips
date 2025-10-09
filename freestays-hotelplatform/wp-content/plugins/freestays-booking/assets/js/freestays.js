@@ -19,7 +19,11 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.forEach((value, key) => {
             requestData[key] = value;
         });
-
+        // Check op verplichte velden
+        if (!bookingForm.action || Object.values(requestData).some(v => v === '')) {
+            alert('Vul alle verplichte velden in.');
+            return;
+        }
         fetch(bookingForm.action, {
             method: 'POST',
             headers: {
@@ -56,7 +60,11 @@ document.addEventListener('DOMContentLoaded', function() {
         searchData.forEach((value, key) => {
             requestData[key] = value;
         });
-
+        // Check op verplichte velden
+        if (!searchForm.action || Object.values(requestData).some(v => v === '')) {
+            alert('Vul alle verplichte velden in.');
+            return;
+        }
         fetch(searchForm.action, {
             method: 'GET',
             headers: {
