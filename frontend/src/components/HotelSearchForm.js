@@ -1,9 +1,14 @@
+
 import React, { useState } from 'react';
+import './HotelSearchForm.css';
 
 export default function HotelSearchForm() {
   const [form, setForm] = useState({
-    q: '', country: '', city_id: '', resort_id: '',
-    start: '', end: '', room: 1, adults: 2, children: 0
+    destination: '',
+    checkin: '',
+    checkout: '',
+    guests: 2,
+    rooms: 1,
   });
   const [results, setResults] = useState(null);
 
@@ -11,39 +16,87 @@ export default function HotelSearchForm() {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    const res = await fetch('/wp-json/freestays/v1/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    });
-    const json = await res.json();
-    setResults(json.data);
+    setResults(null);
+    // Sunhotels expects destination_id, checkin, checkout, guests, rooms
+    const payload = {
+      destination_id: form.destination,
+      start: form.checkin,
+      end: form.checkout,
+      adults: form.guests,
+      room: form.rooms
+    };
+    try {
+      const res = await fetch('/wp-json/freestays/v1/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setResults(json.data);
+      } else {
+        setResults([]);
+      }
+    } catch (err) {
+      setResults([]);
+    }
   };
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <input name="q" placeholder="Bestemming, hotel of plaats" value={form.q} onChange={handleChange} />
-        <select name="country" value={form.country} onChange={handleChange}>
-          <option value="">Kies land</option>
-        </select>
-        <select name="city_id" value={form.city_id} onChange={handleChange}>
-          <option value="">Kies stad</option>
-        </select>
-        <select name="resort_id" value={form.resort_id} onChange={handleChange}>
-          <option value="">Kies resort</option>
-        </select>
-        <input type="date" name="start" value={form.start} onChange={handleChange} required />
-        <input type="date" name="end" value={form.end} onChange={handleChange} required />
-        <input type="number" name="room" min="1" value={form.room} onChange={handleChange} />
-        <input type="number" name="adults" min="1" value={form.adults} onChange={handleChange} />
-        <input type="number" name="children" min="0" value={form.children} onChange={handleChange} />
-        <button type="submit">Zoeken</button>
+    <div className="hotel-search-bg">
+      <div className="hotel-search-header">
+        <h1>Find Your Perfect <span className="hotel-search-highlight">Hotel Stay</span></h1>
+        <p>Discover amazing hotels worldwide with the best prices guaranteed. Book now and save up to 60% on your next adventure.</p>
+      </div>
+      <form className="hotel-search-form" onSubmit={handleSubmit}>
+        <div className="hotel-search-fields">
+          <div className="hotel-search-field">
+            <label>Destination</label>
+            <input name="destination" placeholder="Where are you going?" value={form.destination} onChange={handleChange} />
+          </div>
+          <div className="hotel-search-field">
+            <label>Check-in</label>
+            <input type="date" name="checkin" value={form.checkin} onChange={handleChange} />
+          </div>
+          <div className="hotel-search-field">
+            <label>Check-out</label>
+            <input type="date" name="checkout" value={form.checkout} onChange={handleChange} />
+          </div>
+          <div className="hotel-search-field">
+            <label>Guests & Rooms</label>
+            <select name="guests" value={form.guests} onChange={handleChange}>
+              {[...Array(10)].map((_, i) => <option key={i+1} value={i+1}>{i+1} Guest{(i+1)>1?'s':''}</option>)}
+            </select>
+            <select name="rooms" value={form.rooms} onChange={handleChange}>
+              {[...Array(5)].map((_, i) => <option key={i+1} value={i+1}>{i+1} Room{(i+1)>1?'s':''}</option>)}
+            </select>
+          </div>
+          <div className="hotel-search-field hotel-search-btn-field">
+            <button type="submit" className="hotel-search-btn">Search</button>
+          </div>
+        </div>
       </form>
-      <div>
-        {results && Array.isArray(results) && results.length > 0
-          ? results.map((hotel, i) => <div key={i}>{JSON.stringify(hotel)}</div>)
-          : results && 'Geen resultaten gevonden.'}
+      <div style={{marginTop:32}}>
+        {results === null ? null : (
+          results.length > 0 ? (
+            <div className="hotel-results">
+              {results.map((hotel, i) => (
+                <div key={i} className="hotel-card">
+                  <div className="hotel-card-img">
+                    {hotel.image ? <img src={hotel.image} alt={hotel.name} /> : <div className="hotel-card-img-placeholder" />}
+                  </div>
+                  <div className="hotel-card-info">
+                    <h3>{hotel.name}</h3>
+                    <div>{hotel.city}, {hotel.country}</div>
+                    <div className="hotel-card-price">{hotel.price ? `€${hotel.price}` : 'Prijs op aanvraag'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="hotel-no-results">Geen hotels gevonden voor deze zoekopdracht.</div>
+          )
+        )}
       </div>
     </div>
   );

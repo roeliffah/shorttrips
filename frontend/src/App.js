@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 
+const bridgeKey = 'hlIGzfFEk5Af0dWNZO4p';
+
 function App() {
   const [countries, setCountries] = useState([]);
   const [cities, setCities] = useState([]);
@@ -18,16 +20,16 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch("/wp-json/freestays/v1/countries")
+    fetch(`/bridge/api.php?action=landen&key=${bridgeKey}`)
       .then((res) => res.json())
-      .then((json) => setCountries(json.data || []));
+      .then((json) => setCountries(json.results || []));
   }, []);
 
   useEffect(() => {
     if (form.country) {
-      fetch(`/wp-json/freestays/v1/cities?country_id=${form.country}`)
+      fetch(`/bridge/api.php?action=steden&land=${encodeURIComponent(form.country)}&key=${bridgeKey}`)
         .then((res) => res.json())
-        .then((json) => setCities(json.data || []));
+        .then((json) => setCities(json.results || []));
     } else {
       setCities([]);
     }
@@ -37,9 +39,9 @@ function App() {
 
   useEffect(() => {
     if (form.city) {
-      fetch(`/wp-json/freestays/v1/resorts?city_id=${form.city}`)
+      fetch(`/bridge/api.php?action=destinations&query=${encodeURIComponent(form.city)}&key=${bridgeKey}`)
         .then((res) => res.json())
-        .then((json) => setResorts(json.data || []));
+        .then((json) => setResorts(json.results || []));
     } else {
       setResorts([]);
     }

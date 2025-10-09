@@ -25,8 +25,9 @@ function SearchForm() {
 
     try {
       // Eerst destination_id ophalen uit de bridge/database
+      const bridgeKey = 'hlIGzfFEk5Af0dWNZO4p';
       const resId = await fetch(
-        `/bridge/api.php?action=destination-id&city=${encodeURIComponent(city)}`
+        `/bridge/api.php?action=destination-id&city=${encodeURIComponent(city)}&key=${bridgeKey}`
       );
       const dataId = await resId.json();
       if (!dataId.destination_id) {
@@ -44,6 +45,7 @@ function SearchForm() {
         children,
         rooms,
         destination_id: dataId.destination_id,
+        key: bridgeKey
       });
       const resHotels = await fetch(`/bridge/api.php?${params.toString()}`);
       const dataHotels = await resHotels.json();
