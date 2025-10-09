@@ -3,162 +3,102 @@
  * Sunhotels SOAP API client
  */
 class Sunhotels_Client {
+    private $apiUrl;
     private $apiUser;
     private $apiPass;
-    private $apiUrl;
 
     public function __construct() {
+        $this->apiUrl  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
         $this->apiUser = $_ENV['API_USER'] ?? getenv('API_USER') ?? '';
         $this->apiPass = $_ENV['API_PASS'] ?? getenv('API_PASS') ?? '';
-        $this->apiUrl  = $_ENV['API_URL'] ?? getenv('API_URL') ?? '';
     }
 
     public function getCountries() {
         $xml = $this->buildGetCountriesXml();
-        $opts = [
-            'http' => [
-                'method' => "POST",
-                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/GetCountries\"\r\n",
-                'content' => $xml,
-                'timeout' => 30
-            ]
-        ];
-        $context = stream_context_create($opts);
-        $response = @file_get_contents($this->apiUrl, false, $context);
-        if ($response === false) return [];
-
+        $response = $this->post($xml, 'GetCountries');
+        if (!$response) return [];
         $xmlObj = simplexml_load_string($response);
         if (!$xmlObj) return [];
-
-        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
-        if (!$body) return [];
-
         $countries = [];
-        $resultNodes = $body->xpath('.//Country');
-        if ($resultNodes) {
-            foreach ($resultNodes as $country) {
-                $countries[] = [
-                    'id' => (string)($country->CountryId ?? ''),
-                    'name' => (string)($country->Name ?? ''),
-                    'destinationID' => (string)($country->DestinationId ?? '')
-                ];
-            }
+        foreach ($xmlObj->Countries->Country ?? [] as $country) {
+            $countries[] = [
+                'id' => (string)$country->CountryId,
+                'name' => (string)$country->CountryName,
+                'destinationID' => (string)$country->DestinationId ?? ''
+            ];
         }
         return $countries;
     }
 
     public function getCities($country_id) {
         $xml = $this->buildGetCitiesXml($country_id);
-        $opts = [
-            'http' => [
-                'method' => "POST",
-                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/GetCities\"\r\n",
-                'content' => $xml,
-                'timeout' => 30
-            ]
-        ];
-        $context = stream_context_create($opts);
-        $response = @file_get_contents($this->apiUrl, false, $context);
-        if ($response === false) return [];
-
+        $response = $this->post($xml, 'GetCities');
+        if (!$response) return [];
         $xmlObj = simplexml_load_string($response);
         if (!$xmlObj) return [];
-
-        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
-        if (!$body) return [];
-
         $cities = [];
-        $resultNodes = $body->xpath('.//City');
-        if ($resultNodes) {
-            foreach ($resultNodes as $city) {
-                $cities[] = [
-                    'id' => (string)($city->CityId ?? ''),
-                    'name' => (string)($city->CityName ?? ''),
-                    'destinationID' => (string)($city->DestinationId ?? '')
-                ];
-            }
+        foreach ($xmlObj->Cities->City ?? [] as $city) {
+            $cities[] = [
+                'id' => (string)$city->CityId,
+                'name' => (string)$city->CityName,
+                'destinationID' => (string)$city->DestinationId ?? ''
+            ];
         }
         return $cities;
     }
 
     public function getResorts($city_id) {
         $xml = $this->buildGetResortsXml($city_id);
-        $opts = [
-            'http' => [
-                'method' => "POST",
-                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/GetResorts\"\r\n",
-                'content' => $xml,
-                'timeout' => 30
-            ]
-        ];
-        $context = stream_context_create($opts);
-        $response = @file_get_contents($this->apiUrl, false, $context);
-        if ($response === false) return [];
-
+        $response = $this->post($xml, 'GetResorts');
+        if (!$response) return [];
         $xmlObj = simplexml_load_string($response);
         if (!$xmlObj) return [];
-
-        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
-        if (!$body) return [];
-
         $resorts = [];
-        $resultNodes = $body->xpath('.//Resort');
-        if ($resultNodes) {
-            foreach ($resultNodes as $resort) {
-                $resorts[] = [
-                    'id' => (string)($resort->ResortId ?? ''),
-                    'name' => (string)($resort->Name ?? ''),
-                    'destinationID' => (string)($resort->DestinationId ?? '')
-                ];
-            }
+        foreach ($xmlObj->Resorts->Resort ?? [] as $resort) {
+            $resorts[] = [
+                'id' => (string)$resort->ResortId,
+                'name' => (string)$resort->ResortName,
+                'destinationID' => (string)$resort->DestinationId ?? ''
+            ];
         }
         return $resorts;
     }
 
     public function searchV3($params) {
-        if (empty($this->apiUrl)) {
-            throw new Exception('API URL is niet ingesteld!');
-        }
-
         $xml = $this->buildSearchV3Xml($params);
+        $response = $this->post($xml, 'SearchV3');
+        if (!$response) return [];
+        $xmlObj = simplexml_load_string($response);
+        if (!$xmlObj) return [];
+        $hotels = [];
+        foreach ($xmlObj->Hotels->Hotel ?? [] as $hotel) {
+            $hotels[] = [
+                'name' => (string)$hotel->HotelName,
+                'city' => (string)$hotel->CityName,
+                'country' => (string)$hotel->CountryName,
+                'price' => (string)$hotel->Price ?? '',
+                'image' => (string)$hotel->Image ?? ''
+            ];
+        }
+        return ['hotels' => $hotels];
+    }
+
+    private function post($xml, $action) {
+        if (empty($this->apiUrl)) return false;
+        $headers = [
+            "Content-Type: text/xml; charset=utf-8",
+            "SOAPAction: \"http://xml.sunhotels.net/15/$action\""
+        ];
         $opts = [
             'http' => [
                 'method' => "POST",
-                'header' => "Content-Type: text/xml; charset=utf-8\r\nSOAPAction: \"http://xml.sunhotels.net/15/SearchV3\"\r\n",
+                'header' => implode("\r\n", $headers),
                 'content' => $xml,
                 'timeout' => 30
             ]
         ];
         $context = stream_context_create($opts);
-        $response = @file_get_contents($this->apiUrl, false, $context);
-        if ($response === false) return null;
-
-        // Parse de SOAP response
-        $xmlObj = simplexml_load_string($response);
-        if (!$xmlObj) return null;
-
-        $xmlObj->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $body = $xmlObj->xpath('//soap:Body')[0] ?? null;
-        if (!$body) return null;
-
-        // Zoek hotels in de response (vereenvoudigd, pas aan naar jouw API response)
-        $hotels = [];
-        $resultNodes = $body->xpath('.//Hotel');
-        if ($resultNodes) {
-            foreach ($resultNodes as $hotel) {
-                $hotels[] = [
-                    'id' => (string)($hotel->HotelId ?? ''),
-                    'name' => (string)($hotel->Name ?? ''),
-                    'city' => (string)($hotel->City ?? ''),
-                    'country' => (string)($hotel->Country ?? ''),
-                    // Voeg meer velden toe indien gewenst
-                ];
-            }
-        }
-        return ['hotels' => $hotels];
+        return @file_get_contents($this->apiUrl, false, $context);
     }
 
     private function buildGetCountriesXml() {
@@ -179,8 +119,7 @@ XML;
     }
 
     private function buildGetCitiesXml($country_id) {
-        $countryID = htmlspecialchars($country_id);
-
+        $country_id = htmlspecialchars($country_id);
         return <<<XML
 <?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -191,7 +130,7 @@ XML;
       <userName>{$this->apiUser}</userName>
       <password>{$this->apiPass}</password>
       <language>EN</language>
-      <countryID>{$countryID}</countryID>
+      <countryID>{$country_id}</countryID>
     </GetCities>
   </soap:Body>
 </soap:Envelope>
@@ -199,8 +138,7 @@ XML;
     }
 
     private function buildGetResortsXml($city_id) {
-        $cityID = htmlspecialchars($city_id);
-
+        $city_id = htmlspecialchars($city_id);
         return <<<XML
 <?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -211,7 +149,7 @@ XML;
       <userName>{$this->apiUser}</userName>
       <password>{$this->apiPass}</password>
       <language>EN</language>
-      <cityID>{$cityID}</cityID>
+      <cityID>{$city_id}</cityID>
     </GetResorts>
   </soap:Body>
 </soap:Envelope>
@@ -224,16 +162,7 @@ XML;
         $rooms = (int)($params['room'] ?? 1);
         $adults = (int)($params['adults'] ?? 2);
         $children = (int)($params['children'] ?? 0);
-
-        // destinationID ophalen uit params (altijd meesturen!)
-        $destinationID = '';
-        if (!empty($params['destination_id'])) {
-            $destinationID = htmlspecialchars($params['destination_id']);
-        } elseif (!empty($params['q'])) {
-            $destinationID = htmlspecialchars($params['q']);
-        }
-
-        $blockSuperdeal = 'ja';
+        $destinationID = htmlspecialchars($params['destination_id'] ?? '');
         return <<<XML
 <?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -251,7 +180,7 @@ XML;
       <destinationID>{$destinationID}</destinationID>
       <numberOfAdults>{$adults}</numberOfAdults>
       <numberOfChildren>{$children}</numberOfChildren>
-      <blockSuperdeal>{$blockSuperdeal}</blockSuperdeal>
+      <blockSuperdeal>ja</blockSuperdeal>
     </SearchV3>
   </soap:Body>
 </soap:Envelope>
