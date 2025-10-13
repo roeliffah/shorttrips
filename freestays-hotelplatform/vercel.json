@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/wp-json/:match*",
+      "destination": "/wp-json/:match*"
+    }
+  ]
+}
