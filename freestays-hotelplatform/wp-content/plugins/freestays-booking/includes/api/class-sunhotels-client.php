@@ -122,7 +122,10 @@ class Sunhotels_Client {
             ]
         ];
         $context = stream_context_create($opts);
-        return @file_get_contents($this->apiUrl, false, $context);
+        error_log('[freestays] Sunhotels SOAP REQUEST (' . $action . '): ' . $xml);
+        $response = @file_get_contents($this->apiUrl, false, $context);
+        error_log('[freestays] Sunhotels SOAP RESPONSE (' . $action . '): ' . ($response ?: 'GEEN RESPONSE'));
+        return $response;
     }
 
     private function buildGetCountriesXml() {
