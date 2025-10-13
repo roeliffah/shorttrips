@@ -27,25 +27,37 @@ class Searchbar_Shortcode {
         <div id="freestays-search-results"></div>
         <script>
         async function loadCountries() {
-            const res = await fetch('/wp-json/freestays/v1/countries');
-            const json = await res.json();
-            const select = document.getElementById('country-select');
-            select.innerHTML = '<option value="">Kies land</option>' +
-                (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+            try {
+                const res = await fetch('/wp-json/freestays/v1/countries');
+                const json = await res.json();
+                const select = document.getElementById('country-select');
+                select.innerHTML = '<option value="">Kies land</option>' +
+                    (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+            } catch(e) {
+                document.getElementById('country-select').innerHTML = '<option value="">Fout bij laden landen</option>';
+            }
         }
         async function loadCities(countryId) {
-            const res = await fetch('/wp-json/freestays/v1/cities?country_id=' + encodeURIComponent(countryId));
-            const json = await res.json();
-            const select = document.getElementById('city-select');
-            select.innerHTML = '<option value="">Kies stad</option>' +
-                (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+            try {
+                const res = await fetch('/wp-json/freestays/v1/cities?country_id=' + encodeURIComponent(countryId));
+                const json = await res.json();
+                const select = document.getElementById('city-select');
+                select.innerHTML = '<option value="">Kies stad</option>' +
+                    (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+            } catch(e) {
+                document.getElementById('city-select').innerHTML = '<option value="">Fout bij laden steden</option>';
+            }
         }
         async function loadResorts(cityId) {
-            const res = await fetch('/wp-json/freestays/v1/resorts?city_id=' + encodeURIComponent(cityId));
-            const json = await res.json();
-            const select = document.getElementById('resort-select');
-            select.innerHTML = '<option value="">Kies resort</option>' +
-                (json.data || []).map(r => `<option value="${r.destinationID}">${r.name}</option>`).join('');
+            try {
+                const res = await fetch('/wp-json/freestays/v1/resorts?city_id=' + encodeURIComponent(cityId));
+                const json = await res.json();
+                const select = document.getElementById('resort-select');
+                select.innerHTML = '<option value="">Kies resort</option>' +
+                    (json.data || []).map(r => `<option value="${r.destinationID}">${r.name}</option>`).join('');
+            } catch(e) {
+                document.getElementById('resort-select').innerHTML = '<option value="">Fout bij laden resorts</option>';
+            }
         }
         document.addEventListener('DOMContentLoaded', function() {
             loadCountries();
@@ -70,12 +82,18 @@ class Searchbar_Shortcode {
                     children: document.getElementById('children-input').value,
                     room: document.getElementById('rooms-input').value
                 };
-                const res = await fetch('/wp-json/freestays/v1/search', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                const json = await res.json();
+                let json;
+                try {
+                    const res = await fetch('/wp-json/freestays/v1/search', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    json = await res.json();
+                } catch(e) {
+                    document.getElementById('freestays-search-results').innerHTML = '<div>Fout bij zoeken: ' + e + '</div>';
+                    return;
+                }
                 const resultsDiv = document.getElementById('freestays-search-results');
                 if (json.data && json.data.length) {
                     resultsDiv.innerHTML = json.data.map(hotel =>
@@ -83,6 +101,8 @@ class Searchbar_Shortcode {
                             <strong>${hotel.name}</strong><br>
                             ${hotel.city ? hotel.city + '<br>' : ''}
                             ${hotel.country ? hotel.country + '<br>' : ''}
+                            ${hotel.price ? 'Prijs: ' + hotel.price + '<br>' : ''}
+                            ${hotel.image ? '<img src="' + hotel.image + '" style="max-width:120px;max-height:80px;" />' : ''}
                         </div>`
                     ).join('');
                 } else {
