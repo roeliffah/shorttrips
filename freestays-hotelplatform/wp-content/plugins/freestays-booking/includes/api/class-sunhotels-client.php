@@ -206,8 +206,7 @@ XML;
       <numberOfRooms>{$rooms}</numberOfRooms>
       <destinationID>{$destinationID}</destinationID>
       <numberOfAdults>{$adults}</numberOfAdults>
-      <numberOfChildren>{$children}</numberOfChildren>
-      <blockSuperdeal>ja</blockSuperdeal>
+    <numberOfChildren>{$children}</numberOfChildren>
     </SearchV3>
   </soap:Body>
 </soap:Envelope>
