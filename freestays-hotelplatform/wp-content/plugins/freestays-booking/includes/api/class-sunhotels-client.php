@@ -22,6 +22,7 @@ class Sunhotels_Client {
         }
         $xml = $this->buildGetCountriesXml();
         $response = $this->post($xml, 'GetCountries');
+        error_log('[freestays] Sunhotels SOAP RESPONSE BODY (GetCountries): ' . ($response ?: 'GEEN RESPONSE'));
         if (!$response) return [];
         $xmlObj = simplexml_load_string($response);
         if (!$xmlObj) return [];
@@ -45,6 +46,7 @@ class Sunhotels_Client {
         }
         $xml = $this->buildGetCitiesXml($country_id);
         $response = $this->post($xml, 'GetCities');
+        error_log('[freestays] Sunhotels SOAP RESPONSE BODY (GetCities): ' . ($response ?: 'GEEN RESPONSE'));
         if (!$response) return [];
         $xmlObj = simplexml_load_string($response);
         if (!$xmlObj) return [];
@@ -68,6 +70,7 @@ class Sunhotels_Client {
         }
         $xml = $this->buildGetResortsXml($city_id);
         $response = $this->post($xml, 'GetResorts');
+        error_log('[freestays] Sunhotels SOAP RESPONSE BODY (GetResorts): ' . ($response ?: 'GEEN RESPONSE'));
         if (!$response) return [];
         $xmlObj = simplexml_load_string($response);
         if (!$xmlObj) return [];
