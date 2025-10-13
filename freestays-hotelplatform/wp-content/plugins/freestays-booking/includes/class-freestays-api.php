@@ -66,6 +66,10 @@ class Freestays_API {
 
     public static function search_hotels($request) {
         $params = $request->get_json_params();
+        if (empty($params['destination_id'])) {
+            error_log('[freestays] search_hotels: destination_id ontbreekt of leeg');
+            return new WP_Error('missing_destination_id', 'Geen geldige bestemming geselecteerd.', ['status' => 400]);
+        }
         require_once __DIR__ . '/api/class-sunhotels-client.php';
         $client = new Sunhotels_Client();
         $result = $client->searchV3($params);
