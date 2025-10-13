@@ -13,32 +13,32 @@ class Searchbar_Shortcode {
             <label for="city-select" style="margin-left:10px;">Stad:</label>
             <select id="city-select" name="city_id"></select>
 
-            <label for="resort-select" style="margin-left:10px;">Resort:</label>
-            <select id="resort-select" name="resort_id"></select>
-
             <input type="text" id="search-input" name="q" placeholder="Zoekterm (optioneel)" style="margin-left:10px;">
-            <input type="date" id="checkin-input" name="start" style="margin-left:10px;">
-            <input type="date" id="checkout-input" name="end">
-            <input type="number" id="adults-input" name="adults" value="2" min="1" style="width:60px;margin-left:10px;">
-            <input type="number" id="children-input" name="children" value="0" min="0" style="width:60px;">
-            <input type="number" id="rooms-input" name="room" value="1" min="1" style="width:60px;">
             <button type="submit" style="margin-left:10px;">Zoeken</button>
         </form>
         <div id="freestays-search-results"></div>
         <script>
         async function loadCountries() {
-            const res = await fetch('/wp-json/freestays/v1/countries');
+            const res = await fetch('/wp-json/freestays/v1/bravo-destinations');
             const json = await res.json();
             const select = document.getElementById('country-select');
+            let countries = {};
+            if (Array.isArray(json.data)) {
+                json.data.forEach(dest => {
+                    if (!countries[dest.country_id]) {
+                        countries[dest.country_id] = dest.country_name;
+                    }
+                });
+            }
             select.innerHTML = '<option value="">Kies land</option>' +
-                (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+                Object.entries(countries).map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
         }
         async function loadCities(countryId) {
-            const res = await fetch('/wp-json/freestays/v1/cities?country_id=' + encodeURIComponent(countryId));
+            const res = await fetch('/wp-json/freestays/v1/bravo-destinations?country_id=' + encodeURIComponent(countryId));
             const json = await res.json();
             const select = document.getElementById('city-select');
             select.innerHTML = '<option value="">Kies stad</option>' +
-                (json.data || []).map(c => `<option value="${c.destinationID}">${c.name}</option>`).join('');
+                (json.data || []).map(dest => `<option value="${dest.destination_id}">${dest.destination_name}</option>`).join('');
         }
         async function loadResorts(cityId) {
             const res = await fetch('/wp-json/freestays/v1/resorts?city_id=' + encodeURIComponent(cityId));
