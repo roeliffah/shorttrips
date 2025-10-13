@@ -1,5 +1,10 @@
 <?php
-/**
+/*
+Plugin Name: Freestays Booking
+Description: Maatwerk hotel booking plugin voor Freestays.
+Version: 1.0
+Author: Freestays Team
+*/
 
 // Shortcode en API classes includen
 require_once __DIR__ . '/includes/class-searchbar-shortcode.php';
