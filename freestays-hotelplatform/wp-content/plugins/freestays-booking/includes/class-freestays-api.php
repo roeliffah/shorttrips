@@ -32,6 +32,9 @@ class Freestays_API {
         error_log('[freestays] get_countries aangeroepen');
         $result = $client->getCountries();
         error_log('[freestays] get_countries resultaat: ' . print_r($result, true));
+        if (isset($result['error'])) {
+            return new WP_Error('sunhotels_credentials', $result['error'], ['status' => 500]);
+        }
         return rest_ensure_response(['data' => $result]);
     }
 
@@ -42,6 +45,9 @@ class Freestays_API {
         error_log('[freestays] get_cities aangeroepen met country_id: ' . $country_id);
         $result = $client->getCities($country_id);
         error_log('[freestays] get_cities resultaat: ' . print_r($result, true));
+        if (isset($result['error'])) {
+            return new WP_Error('sunhotels_credentials', $result['error'], ['status' => 500]);
+        }
         return rest_ensure_response(['data' => $result]);
     }
 
@@ -52,6 +58,9 @@ class Freestays_API {
         error_log('[freestays] get_resorts aangeroepen met city_id: ' . $city_id);
         $result = $client->getResorts($city_id);
         error_log('[freestays] get_resorts resultaat: ' . print_r($result, true));
+        if (isset($result['error'])) {
+            return new WP_Error('sunhotels_credentials', $result['error'], ['status' => 500]);
+        }
         return rest_ensure_response(['data' => $result]);
     }
 
@@ -60,6 +69,9 @@ class Freestays_API {
         require_once __DIR__ . '/api/class-sunhotels-client.php';
         $client = new Sunhotels_Client();
         $result = $client->searchV3($params);
+        if (isset($result['error'])) {
+            return new WP_Error('sunhotels_credentials', $result['error'], ['status' => 500]);
+        }
         if ($result && isset($result['hotels'])) {
             return ['success' => true, 'data' => $result['hotels']];
         }

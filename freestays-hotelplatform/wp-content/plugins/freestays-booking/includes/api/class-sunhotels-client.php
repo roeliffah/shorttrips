@@ -14,6 +14,12 @@ class Sunhotels_Client {
     }
 
     public function getCountries() {
+        if (empty($this->apiUrl) || empty($this->apiUser) || empty($this->apiPass)) {
+            error_log('[freestays] Sunhotels credentials ontbreken!');
+            return [
+                'error' => 'Sunhotels API credentials ontbreken. Controleer .env en plugin installatie.'
+            ];
+        }
         $xml = $this->buildGetCountriesXml();
         $response = $this->post($xml, 'GetCountries');
         if (!$response) return [];
@@ -31,6 +37,12 @@ class Sunhotels_Client {
     }
 
     public function getCities($country_id) {
+        if (empty($this->apiUrl) || empty($this->apiUser) || empty($this->apiPass)) {
+            error_log('[freestays] Sunhotels credentials ontbreken!');
+            return [
+                'error' => 'Sunhotels API credentials ontbreken. Controleer .env en plugin installatie.'
+            ];
+        }
         $xml = $this->buildGetCitiesXml($country_id);
         $response = $this->post($xml, 'GetCities');
         if (!$response) return [];
@@ -48,6 +60,12 @@ class Sunhotels_Client {
     }
 
     public function getResorts($city_id) {
+        if (empty($this->apiUrl) || empty($this->apiUser) || empty($this->apiPass)) {
+            error_log('[freestays] Sunhotels credentials ontbreken!');
+            return [
+                'error' => 'Sunhotels API credentials ontbreken. Controleer .env en plugin installatie.'
+            ];
+        }
         $xml = $this->buildGetResortsXml($city_id);
         $response = $this->post($xml, 'GetResorts');
         if (!$response) return [];
@@ -65,6 +83,12 @@ class Sunhotels_Client {
     }
 
     public function searchV3($params) {
+        if (empty($this->apiUrl) || empty($this->apiUser) || empty($this->apiPass)) {
+            error_log('[freestays] Sunhotels credentials ontbreken!');
+            return [
+                'error' => 'Sunhotels API credentials ontbreken. Controleer .env en plugin installatie.'
+            ];
+        }
         $xml = $this->buildSearchV3Xml($params);
         $response = $this->post($xml, 'SearchV3');
         if (!$response) return [];
