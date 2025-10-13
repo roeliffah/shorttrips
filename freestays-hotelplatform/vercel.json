@@ -1,8 +1,5 @@
 {
-  "rewrites": [
-    {
-      "source": "/wp-json/:match*",
-      "destination": "/wp-json/:match*"
-    }
-  ]
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "framework": "create-react-app"
 }
