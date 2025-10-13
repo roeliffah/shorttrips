@@ -24,6 +24,45 @@ class Freestays_API {
             'callback' => [self::class, 'search_hotels'],
               'permission_callback' => '__return_true',
         ]);
+                    register_rest_route('freestays/v1', '/bravo-destinations', [
+                            'methods' => 'GET',
+                            'callback' => [self::class, 'get_bravo_destinations'],
+                            'permission_callback' => '__return_true',
+                    ]);
+    }
+    /**
+     * Haal Bravo bestemmingen (steden) op uit de database
+     * Optioneel filteren op country_id, destination_id, of zoekterm q
+     */
+    public static function get_bravo_destinations($request) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'bravo_destinations';
+        $country_id = $request->get_param('country_id');
+        $destination_id = $request->get_param('destination_id');
+        $q = $request->get_param('q');
+
+        $where = [];
+        $params = [];
+        if (!empty($country_id)) {
+            $where[] = 'country_id = %d';
+            $params[] = $country_id;
+        }
+        if (!empty($destination_id)) {
+            $where[] = 'destination_id = %d';
+            $params[] = $destination_id;
+        }
+        if (!empty($q)) {
+            $where[] = '(destination_name LIKE %s OR country_name LIKE %s)';
+            $params[] = '%' . $wpdb->esc_like($q) . '%';
+            $params[] = '%' . $wpdb->esc_like($q) . '%';
+        }
+        $sql = "SELECT id, destination_code, destination_id, destination_name, country_id, country_name FROM $table";
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+        $sql .= ' ORDER BY destination_name ASC LIMIT 100';
+        $results = $wpdb->get_results($wpdb->prepare($sql, ...$params), ARRAY_A);
+        return rest_ensure_response(['data' => $results]);
     }
 
     public static function get_countries($request) {
