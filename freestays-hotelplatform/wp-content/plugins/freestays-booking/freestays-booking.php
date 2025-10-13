@@ -319,38 +319,7 @@ add_shortcode('freestays_search_form', 'freestays_search_form_shortcode');
 /**
  * AJAX handlers
  */
-if (!function_exists('freestays_ajax_get_countries')) {
-    add_action('wp_ajax_freestays_get_countries', 'freestays_ajax_get_countries');
-    add_action('wp_ajax_nopriv_freestays_get_countries', 'freestays_ajax_get_countries');
-    function freestays_ajax_get_countries() {
-        $countries = freestays_get_countries();
-        wp_send_json($countries);
-    }
-}
-
-if (!function_exists('freestays_ajax_get_cities')) {
-    add_action('wp_ajax_freestays_get_cities', 'freestays_ajax_get_cities');
-    add_action('wp_ajax_nopriv_freestays_get_cities', 'freestays_ajax_get_cities');
-    add_action('wp_ajax_freestays_get_resorts', 'freestays_ajax_get_resorts');
-    add_action('wp_ajax_nopriv_freestays_get_resorts', 'freestays_ajax_get_resorts');
-    function freestays_ajax_get_cities() {
-        $country_id = isset($_POST['country_id']) ? sanitize_text_field($_POST['country_id']) : '';
-        if (empty($country_id)) {
-            wp_send_json([]);
-        }
-        $cities = freestays_get_cities($country_id);
-        wp_send_json($cities);
-    }
-
-    function freestays_ajax_get_resorts() {
-        $city_id = isset($_POST['city_id']) ? sanitize_text_field($_POST['city_id']) : '';
-        if (empty($city_id)) {
-            wp_send_json([]);
-        }
-        $resorts = freestays_get_resorts($city_id);
-        wp_send_json($resorts);
-    }
-}
+// Oude AJAX handlers verwijderd. Frontend gebruikt nu direct de REST API endpoints.
 
 /**
  * CSS en JS inladen

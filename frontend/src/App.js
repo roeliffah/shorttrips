@@ -20,31 +20,35 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!bridgeKey) return;
     fetch(`/bridge/api.php?action=landen&key=${bridgeKey}`)
       .then((res) => res.json())
       .then((json) => setCountries(json.results || []));
   }, []);
 
   useEffect(() => {
-    if (form.country) {
-      fetch(`/bridge/api.php?action=steden&land=${encodeURIComponent(form.country)}&key=${bridgeKey}`)
-        .then((res) => res.json())
-        .then((json) => setCities(json.results || []));
-    } else {
+    if (!form.country || !bridgeKey) {
       setCities([]);
+      setForm((f) => ({ ...f, city: "", resort: "" }));
+      setResorts([]);
+      return;
     }
+    fetch(`/bridge/api.php?action=steden&land=${encodeURIComponent(form.country)}&key=${bridgeKey}`)
+      .then((res) => res.json())
+      .then((json) => setCities(json.results || []));
     setForm((f) => ({ ...f, city: "", resort: "" }));
     setResorts([]);
   }, [form.country]);
 
   useEffect(() => {
-    if (form.city) {
-      fetch(`/bridge/api.php?action=destinations&query=${encodeURIComponent(form.city)}&key=${bridgeKey}`)
-        .then((res) => res.json())
-        .then((json) => setResorts(json.results || []));
-    } else {
+    if (!form.city || !bridgeKey) {
       setResorts([]);
+      setForm((f) => ({ ...f, resort: "" }));
+      return;
     }
+    fetch(`/bridge/api.php?action=destinations&query=${encodeURIComponent(form.city)}&key=${bridgeKey}`)
+      .then((res) => res.json())
+      .then((json) => setResorts(json.results || []));
     setForm((f) => ({ ...f, resort: "" }));
   }, [form.city]);
 

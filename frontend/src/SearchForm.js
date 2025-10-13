@@ -24,8 +24,13 @@ function SearchForm() {
     }
 
     try {
-      // Eerst destination_id ophalen uit de bridge/database
       const bridgeKey = 'hlIGzfFEk5Af0dWNZO4p';
+      if (!city.trim() || !checkin || !checkout || !bridgeKey) {
+        setError("Vul alle verplichte velden in.");
+        setLoading(false);
+        return;
+      }
+      // Eerst destination_id ophalen uit de bridge/database
       const resId = await fetch(
         `/bridge/api.php?action=destination-id&city=${encodeURIComponent(city)}&key=${bridgeKey}`
       );
@@ -37,6 +42,11 @@ function SearchForm() {
       }
 
       // Daarna hotels zoeken met de gevonden destination_id
+      if (!dataId.destination_id) {
+        setError("Geen geldige destination_id.");
+        setLoading(false);
+        return;
+      }
       const params = new URLSearchParams({
         action: "quicksearch",
         checkin,
@@ -47,7 +57,13 @@ function SearchForm() {
         destination_id: dataId.destination_id,
         key: bridgeKey
       });
-      const resHotels = await fetch(`/bridge/api.php?${params.toString()}`);
+      const url = `/bridge/api.php?${params.toString()}`;
+      if (!url.includes('destination_id=') || url.includes('destination_id=&')) {
+        setError("Geen geldige zoekopdracht.");
+        setLoading(false);
+        return;
+      }
+      const resHotels = await fetch(url);
       const dataHotels = await resHotels.json();
       if (dataHotels.results && dataHotels.results.length > 0) {
         setHotels(dataHotels.results);

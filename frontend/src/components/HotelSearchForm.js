@@ -17,7 +17,11 @@ export default function HotelSearchForm() {
   const handleSubmit = async e => {
     e.preventDefault();
     setResults(null);
-    // Sunhotels expects destination_id, checkin, checkout, guests, rooms
+    // Check op verplichte velden
+    if (!form.destination || !form.checkin || !form.checkout) {
+      setResults([]);
+      return;
+    }
     const payload = {
       destination_id: form.destination,
       start: form.checkin,
@@ -26,6 +30,10 @@ export default function HotelSearchForm() {
       room: form.rooms
     };
     try {
+      if (!payload.destination_id) {
+        setResults([]);
+        return;
+      }
       const res = await fetch('/wp-json/freestays/v1/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
