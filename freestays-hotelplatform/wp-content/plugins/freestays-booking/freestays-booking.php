@@ -16,12 +16,13 @@ require_once __DIR__ . '/includes/class-freestays-api.php';
 
 add_action('rest_api_init', function() {
     register_rest_route('freestays/v1', '/countries', [
-        'methods' => 'GET',
-        'callback' => function() {
-            require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
-            $client = new Sunhotels_Client();
-            return rest_ensure_response(['data' => $client->getCountries()]);
-        }
+            'methods' => 'GET',
+            'callback' => function() {
+                require_once __DIR__ . '/includes/api/class-sunhotels-client.php';
+                $client = new Sunhotels_Client();
+                return rest_ensure_response(['data' => $client->getCountries()]);
+            },
+            'permission_callback' => '__return_true'
     ]);
     register_rest_route('freestays/v1', '/cities', [
         'methods' => 'GET',
@@ -30,6 +31,7 @@ add_action('rest_api_init', function() {
             $client = new Sunhotels_Client();
             return rest_ensure_response(['data' => $client->getCities($request->get_param('country_id'))]);
         }
+            'permission_callback' => '__return_true'
     ]);
     register_rest_route('freestays/v1', '/resorts', [
         'methods' => 'GET',
@@ -38,6 +40,7 @@ add_action('rest_api_init', function() {
             $client = new Sunhotels_Client();
             return rest_ensure_response(['data' => $client->getResorts($request->get_param('city_id'))]);
         }
+            'permission_callback' => '__return_true'
     ]);
     register_rest_route('freestays/v1', '/search', [
         'methods' => 'POST',
@@ -48,6 +51,7 @@ add_action('rest_api_init', function() {
             $results = $client->searchV3($params);
             return rest_ensure_response(['data' => $results['hotels'] ?? []]);
         }
+            'permission_callback' => '__return_true'
     ]);
 });
 
