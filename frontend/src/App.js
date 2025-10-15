@@ -21,7 +21,7 @@ function App() {
 
   useEffect(() => {
     if (!bridgeKey) return;
-    fetch(`/bridge/api.php?action=landen&key=${bridgeKey}`)
+  fetch(`https://2.59.115.196/wp-json/freestays/v1/countries`)
       .then((res) => res.json())
       .then((json) => setCountries(json.results || []));
   }, []);
@@ -33,7 +33,7 @@ function App() {
       setResorts([]);
       return;
     }
-    fetch(`/bridge/api.php?action=steden&land=${encodeURIComponent(form.country)}&key=${bridgeKey}`)
+  fetch(`https://2.59.115.196/wp-json/freestays/v1/cities?country_id=${encodeURIComponent(form.country)}`)
       .then((res) => res.json())
       .then((json) => setCities(json.results || []));
     setForm((f) => ({ ...f, city: "", resort: "" }));
@@ -46,7 +46,7 @@ function App() {
       setForm((f) => ({ ...f, resort: "" }));
       return;
     }
-    fetch(`/bridge/api.php?action=destinations&query=${encodeURIComponent(form.city)}&key=${bridgeKey}`)
+  fetch(`https://2.59.115.196/wp-json/freestays/v1/resorts?city_id=${encodeURIComponent(form.city)}`)
       .then((res) => res.json())
       .then((json) => setResorts(json.results || []));
     setForm((f) => ({ ...f, resort: "" }));
@@ -69,7 +69,7 @@ function App() {
       children: form.children,
       room: form.room,
     };
-    const res = await fetch("/wp-json/freestays/v1/search", {
+  const res = await fetch("https://2.59.115.196/wp-json/freestays/v1/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
