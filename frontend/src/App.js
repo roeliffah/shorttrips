@@ -18,12 +18,18 @@ function App() {
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!bridgeKey) return;
-  fetch(`https://2.59.115.196/wp-json/freestays/v1/countries`)
-      .then((res) => res.json())
-      .then((json) => setCountries(json.results || []));
+    setError("");
+    fetch(`https://2.59.115.196/wp-json/freestays/v1/countries`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Kan landen niet laden");
+        return res.json();
+      })
+      .then((json) => setCountries(json.results || []))
+      .catch((err) => setError(err.message));
   }, []);
 
   useEffect(() => {
@@ -33,9 +39,14 @@ function App() {
       setResorts([]);
       return;
     }
-  fetch(`https://2.59.115.196/wp-json/freestays/v1/cities?country_id=${encodeURIComponent(form.country)}`)
-      .then((res) => res.json())
-      .then((json) => setCities(json.results || []));
+    setError("");
+    fetch(`https://2.59.115.196/wp-json/freestays/v1/cities?country_id=${encodeURIComponent(form.country)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Kan steden niet laden");
+        return res.json();
+      })
+      .then((json) => setCities(json.results || []))
+      .catch((err) => setError(err.message));
     setForm((f) => ({ ...f, city: "", resort: "" }));
     setResorts([]);
   }, [form.country]);
@@ -46,9 +57,14 @@ function App() {
       setForm((f) => ({ ...f, resort: "" }));
       return;
     }
-  fetch(`https://2.59.115.196/wp-json/freestays/v1/resorts?city_id=${encodeURIComponent(form.city)}`)
-      .then((res) => res.json())
-      .then((json) => setResorts(json.results || []));
+    setError("");
+    fetch(`https://2.59.115.196/wp-json/freestays/v1/resorts?city_id=${encodeURIComponent(form.city)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Kan resorts niet laden");
+        return res.json();
+      })
+      .then((json) => setResorts(json.results || []))
+      .catch((err) => setError(err.message));
     setForm((f) => ({ ...f, resort: "" }));
   }, [form.city]);
 
@@ -59,6 +75,7 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     const destination_id =
       form.resort || form.city || form.country;
     const payload = {
@@ -69,19 +86,27 @@ function App() {
       children: form.children,
       room: form.room,
     };
-  const res = await fetch("https://2.59.115.196/wp-json/freestays/v1/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-    setResults(json.data || []);
+    try {
+      const res = await fetch("https://2.59.115.196/wp-json/freestays/v1/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Kan hotels niet laden");
+      const json = await res.json();
+      setResults(json.data || []);
+    } catch (err) {
+      setError(err.message);
+    }
     setLoading(false);
   };
 
   return (
     <div style={{ maxWidth: 500, margin: "0 auto" }}>
       <h2>Hotel zoeken</h2>
+      {error && (
+        <div style={{color:'red',marginBottom:16}}>{error}</div>
+      )}
       <form onSubmit={handleSubmit}>
         <label>
           Land:
