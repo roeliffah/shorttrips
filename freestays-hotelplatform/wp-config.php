@@ -105,6 +105,11 @@ if (isset($_SERVER['HTTP_ORIGIN'])) { line and the "stop editing" line. */
         header("Access-Control-Allow-Headers: Content-Type, Authorization");
     }   header("Access-Control-Allow-Headers: Content-Type, Authorization");
 }   }
+<?php
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");
 }
 /* That's all, stop editing! Happy publishing. */
 /* That's all, stop editing! Happy publishing. */

@@ -34,7 +34,7 @@ export default function HotelSearchForm() {
         setResults([]);
         return;
       }
-      const res = await fetch('/wp-json/freestays/v1/search', {
+  const res = await fetch('https://2.59.115.196/wp-json/freestays/v1/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
